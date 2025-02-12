@@ -8,8 +8,7 @@ library(bslib)
 ui <- page_fluid(
   # Opening paragraph
   card(
-    p("Over the last **7 days**, our emergency departments saw 674 medical admissions. These patients spent a combined 350 days waiting for beds - a critical delay impacting both their care and others in need of emergency help. Our modelling estimates that..
-")
+    HTML("<p><h1 style='font-size: 30;'>Over the last <b>7 days</b>, our emergency departments saw <b>674 medical admissions</b>. These patients spent a combined <b>350 days</b> waiting for beds - a critical delay impacting both their care and others in need of emergency help. <br> Our modelling estimates that..</h1></p>")
   ),
   
   # Two columns layout
@@ -18,9 +17,10 @@ ui <- page_fluid(
     
     # First column - Stack of numbers
     card(
-      card_header("Stacked Numbers"),
-      div(
-        style = "text-align: center; font-size: 24px;",
+      #card_header("Stacked Numbers"),
+      card_body(
+        style = "text-align: left; font-size: 24px;",
+        HTML("<p><h1>Due to the <b>delay in boarding</b> for these patients there will be an excess of..<br> <br> <h1></p>", class = "mb-4"),
         plotOutput("mort"),
         plotOutput("readm"),
         plotOutput("los")
@@ -36,9 +36,10 @@ ui <- page_fluid(
       # Top card (1/3 height)
       card(
         height = "100%",
-        card_header("First Matrix"),
-        div(
-          style = "text-align: center; font-size: 24px; height: 33.33%;",
+        # card_header("First Matrix"),
+        card_body(
+          style = "text-align: left; font-size: 24px; height: 33.33%;",
+          HTML("<p><h1>Due to the <b>queue for medical boarding</b> new arrivals requiring the emergency services experienced..<h1></p>", class = "mb-4"),
           plotOutput("indirect_amb")
         )
       ),
@@ -46,8 +47,8 @@ ui <- page_fluid(
       # Bottom card (2/3 height)
       card(
         height = "100%",
-        card_header("Second Matrix"),
-        div(
+        # card_header("Second Matrix"),
+        card_body(
           style = "text-align: center; font-size: 24px; height: 66.67%;",
           plotOutput("indirect_ed")
         )
@@ -89,7 +90,7 @@ server <- function(input, output) {
         # geom_text(aes(label = label))
         geom_marquee(
           aes(size = size, label = value),
-          size = 14,
+          size = 12,
           width = 0.85,
           style = classic_style(align = "center"),
         ) +
@@ -114,7 +115,7 @@ server <- function(input, output) {
         # geom_text(aes(label = label))
         geom_marquee(
           aes(size = size, label = value),
-          size = 14,
+          size = 12,
           width = 0.85,
           style = classic_style(align = "center"),
         ) +

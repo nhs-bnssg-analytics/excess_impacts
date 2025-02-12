@@ -183,12 +183,17 @@ indirect_plot_amb <-  wrap_plots(list(indirect_amb_impact_plots$ptc[[1]],
 
 
 
-handover_plots <- 
+# handover_plots <- 
   impacts_output %>%
   filter(impact == "om2") %>%
   mutate(value = glue::glue(.open = '-{',
                             .close = '}-',
                             '### {.#9532a8 **-{round(value)}-**}')) %>%
+  mutate(label = str_replace(label,
+                             pattern = "(ambulance handover|seen for treatment)",
+                             replacement = glue::glue(.open = "-{",
+                                                      .close = "}-",
+                                                      "{.-{colour}- **\\1**}")))
   nest(.by = grp) %>%
   mutate(handover_plot = map(data, \(d) {
     d %>% mutate(x = 1, y = 1)  %>%
