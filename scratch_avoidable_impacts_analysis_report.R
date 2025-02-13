@@ -415,14 +415,14 @@ downstream_impacts <- dat_downstream %>%
   mutate(pred_readm_cf = map(data, \(d) predict(readm_mod, newdata = mutate(d, dta_time = 0), type = "response"))) %>%
   mutate(om6_impact = map2_dbl(pred_mort, pred_mort_cf, ~sum(.x-.y, na.rm = TRUE))) %>%
   mutate(om5_impact = map2_dbl(pred_readm, pred_readm_cf, ~sum(.x-.y, na.rm = TRUE))) %>%
-  mutate(om4_impact = map_dbl(data, \(d) los_mod %>% coefficients %>% pluck("dta_time") %>% `*`(d$dta_time/60) %>% sum)) %>%
+  mutate(om4_impact = map_dbl(data, \(d) los_mod %>% coefficients %>% pluck("dta_time") %>% `*`(d$dta_time/60) %>% sum) %>% `*`(24)) %>%
   select(grp = site, om6_impact, om5_impact, om4_impact) %>%
   pivot_longer(-grp, names_to = "impact") %>%
   mutate(impact = str_remove(impact, "_impact"),
          label = case_when(
-           impact == "om4" ~ "bed days in the acutes",
-           impact == "om5" ~ "readmissions in the next 30 days",
-           impact == "om6" ~ "deaths in the next 30 days"
+           impact == "om4" ~ "hours more LOS",
+           impact == "om5" ~ "readmissions",
+           impact == "om6" ~ "deaths"
            ),
          colour = case_when(
            impact == "om4" ~ "#006d77",
@@ -808,7 +808,7 @@ ed_attend_impact <- dta_df %>%
             .by = site) %>%
   pivot_longer(-site, names_to = "impact") %>%
   mutate(impact = "om3",
-         label = "hours to be seen for treatment",
+         label = "hours longer to be seen for treatment in ED",
          colour = "#A89532") %>%
   rename(grp = site)
 
@@ -828,7 +828,7 @@ handover_impact <- dta_df %>%
   select(grp = site, handover_impact)  %>%
   pivot_longer(-grp, names_to = "impact") %>%
   mutate(impact = "om2",
-         label = "hours for ambulance handover",
+         label = "hours longer for ambulance handover",
          colour = "#9532a8") 
 
 
@@ -848,7 +848,7 @@ resp_impact <- dta_df %>%
   select(grp = call_category, resp_impact) %>%
   pivot_longer(-grp, names_to = "impact") %>%
   mutate(impact = str_remove(impact, "_impact"),
-         label = "hours for ambulance response time",
+         label = "hours longer for ambulance response",
          impact = case_when(
            grp == "cat1" ~ "om1a",
            grp == "cat2" ~ "om1b",

@@ -25,12 +25,12 @@ ui <- page_fluid(
   
   card(
     class = "no-border",
-    style = "height: 10vh;",
-    h3(HTML("<p>Over the last <b>7 days</b>, our emergency departments saw <b>674 medical admissions</b>. These patients spent a combined <b>350 days</b> waiting for beds - a critical delay impacting both their care and others in need of emergency help. <br> Our modelling estimates that..</p>"))
+    style = "height: 145px; overflow: visible !important; overflow-y: hidden !important;",
+    h4(HTML("<p>Over the last <b>7 days</b>, our emergency departments saw <b>674 medical admissions</b>. These patients spent a combined <b>350 days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. <br> Our analysis estimates that..</p>"))
   ),
   
   div(
-    style = "height: 85vh;",  # Fixed height that with the 10vh above and gaps equals ~100vh
+    style = "height: 80vh;",  # Fixed height that with the 10vh above and gaps equals ~100vh
     layout_columns(
       col_widths = c(3, 9),
       style = "height: 100%;",
@@ -41,8 +41,8 @@ ui <- page_fluid(
         style = "height: 100%; display: flex; flex-direction: column; gap: 1rem;",
         card(
           class = "no-border",
-          style = "height: 120px;",
-          h3(HTML("<p>Due to the <b>delay in boarding</b> for these patients there will be an excess of..</p>"))
+          style = "height: 140px;",
+          h4(HTML("<p>Due to the <b>delay in boarding</b> over the last 7 days there will be an excess of..</p>"))
         ),
         card(
           class = "no-border",
@@ -59,8 +59,8 @@ ui <- page_fluid(
         style = "height: 100%; display: flex; flex-direction: column; gap: 1rem;",
         card(
           class = "no-border",
-          style = "height: 120px;",
-          h3(HTML("<p>Due to the <b>queue for medical boarding</b> new arrivals requiring the emergency services experienced..</p>"))
+          style = "height: 140px;",
+          h4(HTML("<p>Due to pressure on the emergency department caused by the <b>queue for medical boarding</b>, new arrivals requiring the emergency services waited..</p>"))
         ),
         card(
           class = "no-border",
@@ -98,7 +98,7 @@ server <- function(input, output) {
   
   impacts_output <- readRDS("../data/avoidable_impacts_output.RDS")
   
-  wi <- c(5/8, 3/8)
+  wi <- c(4/9, 5/9)
   hi <- c(4/5, 1/5)
   
   
@@ -109,7 +109,7 @@ server <- function(input, output) {
                               .close = '}-',
                               '### {.-{colour}- **-{round(value)}-**}'))  %>%
     mutate(label = str_replace(label,
-                               pattern = "(ambulance handover|seen for treatment|ambulance response|deaths|readmissions|bed days)",
+                               pattern = "(ambulance handover|seen for treatment|ambulance response|deaths|readmissions|LOS)",
                                replacement = glue::glue(.open = "-{",
                                                         .close = "}-",
                                                         "{.-{colour}- **\\1**}"))) %>%
@@ -128,7 +128,7 @@ server <- function(input, output) {
         # geom_text(aes(label = label))
         geom_marquee(
           aes(size = size, label = value),
-          size = 12,
+          size = 14,
           width = 0.85,
           style = classic_style(align = "center"),
         ) +
@@ -141,6 +141,7 @@ server <- function(input, output) {
   indirect_ed_impact_plots <- 
     impacts_output_pres %>%
     filter(impact %in% c("om3", "om2")) %>%
+    arrange(impact) %>%
     mutate(grp = recode(grp, 
                         "WESTON GENERAL HOSPITAL" = "at WGH",
                         "BRISTOL ROYAL INFIRMARY" = "at BRI",
@@ -153,7 +154,7 @@ server <- function(input, output) {
         # geom_text(aes(label = label))
         geom_marquee(
           aes(size = size, label = value),
-          size = 12,
+          size = 14,
           width = 0.85,
           style = classic_style(align = "center"),
         ) +
@@ -167,9 +168,9 @@ server <- function(input, output) {
         geom_marquee(
           aes(x = 1, y = 1),
           label = l,
-          size = 14,
+          size = 11,
           width = 0.85,
-          style = classic_style(align = "center"),
+          style = classic_style(align = "left"),
         ) +
         theme_void()
     })
@@ -185,7 +186,7 @@ server <- function(input, output) {
         geom_marquee(
           aes(x = 1, y = 1),
           label = l,
-          size = 14,
+          size = 11,
           width = 0.85,
           style = classic_style(align = "center"),
         ) +
@@ -236,9 +237,9 @@ server <- function(input, output) {
         geom_marquee(
           aes(x = 1, y = 1),
           label = l,
-          size = 14,
+          size = 11,
           width = 0.85,
-          style = classic_style(align = "center"),
+          style = classic_style(align = "left"),
         ) +
         theme_void()
     })
@@ -255,7 +256,7 @@ server <- function(input, output) {
         geom_marquee(
           aes(x = 1, y = 1),
           label = l,
-          size = 14,
+          size = 11,
           width = 1,
           style = classic_style(align = "center"),
         ) +

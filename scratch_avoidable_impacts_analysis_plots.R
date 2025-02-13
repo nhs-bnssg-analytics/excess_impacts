@@ -8,6 +8,9 @@ wi <- c(5/8, 3/8)
 hi <- c(4/5, 1/5)
 
 
+create_number_plot(round(impacts_output$value[1]), color = impacts_output$colour[1], subtext = impacts_output$label[1])
+
+
 impacts_output_pres <- impacts_output %>%
   mutate(grp = ifelse(impact %in% c("om4", "om5", "om6"), "System", grp)) %>%
   summarise(value = sum(value), label = label[1], colour = colour[1], .by = c(grp, impact)) %>%
