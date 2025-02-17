@@ -10,6 +10,15 @@ ui <- page_fluid(
   
   tags$head(
     tags$style("
+    /* Override tooltip styles */
+      .tooltip-inner {
+        background-color: white !important;
+        color: black !important;
+        max-width: none !important;
+        padding: 10px !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      
     .no-border {
       border: none !important;
       box-shadow: none !important;
@@ -19,6 +28,45 @@ ui <- page_fluid(
         height: 100%;
         padding-right: 1rem;
     }
+    .custom-table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 20px 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+      
+      .custom-table th {
+        background-color: #2c3e50;
+        color: white;
+        padding: 12px;
+        text-align: left;
+        border-bottom: 2px solid #1a252f;
+      }
+      
+      .custom-table td {
+        padding: 10px;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      
+      .custom-table tr:nth-child(even) {
+        background-color: #f8f9fa;
+      }
+      
+      .custom-table tr:hover {
+        background-color: #e9ecef;
+        transition: background-color 0.2s ease;
+      }
+      
+      .custom-table .number-cell {
+        text-align: right;
+        color: #2980b9;
+        font-weight: 500;
+      }
+      
+      .custom-table .highlight {
+        color: #e74c3c;
+        font-weight: bold;
+      }
   ")
   ),
   style = "height: 100vh; display: flex; flex-direction: column; gap: 1rem;",
@@ -44,13 +92,55 @@ ui <- page_fluid(
           style = "height: 140px;",
           h4(HTML("<p>Due to the <b>delay in boarding</b> over the last 7 days there will be an excess of..</p>"))
         ),
+        tooltip(
         card(
           class = "no-border",
           style = "flex-grow: 1;",
-          plotOutput("mort", height = "33.33%"),
-          plotOutput("readm", height = "33.33%"),
+          plotOutput("mort", height = "33.33%")
+        ),
+        HTML('
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Value</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="number-cell">$50,000</td>
+            <td>Active</td>
+          </tr>
+          <tr>
+            <td>Expenses</td>
+            <td class="number-cell highlight">$45,000</td>
+            <td>Warning</td>
+          </tr>
+          <tr>
+            <td>Profit</td>
+            <td class="number-cell">$5,000</td>
+            <td>Normal</td>
+          </tr>
+          <tr>
+            <td>Growth</td>
+            <td class="number-cell">12%</td>
+            <td>Active</td>
+          </tr>
+        </tbody>
+      </table>
+    ')),
+        card(
+          class = "no-border",
+          style = "flex-grow: 1;",
+          plotOutput("readm", height = "33.33%")
+        ),
+        card(
+          class = "no-border",
+          style = "flex-grow: 1;",
           plotOutput("los", height = "33.33%")
-        )
+        ),
       ),
       
       # Second column
