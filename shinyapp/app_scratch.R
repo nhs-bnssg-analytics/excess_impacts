@@ -171,6 +171,8 @@ ui <- page_fluid(
 )
 
 server <- function(input, output) {
+  
+  browser()
   # Placeholder plot 1
   output$plot1 <- renderPlot({
     plot(1:10, main = "Plot 1", type = "b", col = "blue")
@@ -186,13 +188,23 @@ server <- function(input, output) {
     plot(1:5, main = "Plot 3", type = "b", col = "green")
   })
   
-  impacts_output <- readRDS("../data/avoidable_impacts_output.RDS")
+  impacts_output <- readRDS("../data/avoidable_impacts_output.RDS") %>%
+    mutate(grp = recode(grp,
+                        "WESTON GENERAL HOSPITAL" = "WGH", 
+                        "SOUTHMEAD HOSPITAL" = "NBT", 
+                        "BRISTOL ROYAL INFIRMARY" = "BRI", 
+                        "cat1" = "(Category 1)",
+                        "cat2" = "(Category 2)",
+                        "cat3" = "(Category 3)"
+    ))
+  
   
   wi <- c(4/9, 5/9)
   hi <- c(4/5, 1/5)
   
   
   impacts_output_pres <- impacts_output %>%
+    filter(report_date == max(report_date), level == "aggregate") %>%
     mutate(grp = ifelse(impact %in% c("om4", "om5", "om6"), "System", grp)) %>%
     summarise(value = sum(value), label = label[1], colour = colour[1], .by = c(grp, impact)) %>%
     mutate(value = glue::glue(.open = '-{',
@@ -204,6 +216,12 @@ server <- function(input, output) {
                                                         .close = "}-",
                                                         "{.-{colour}- **\\1**}"))) %>%
     select(grp, impact, label, value) 
+  
+  impacts_output %>%
+    filter(report_date == max(report_date)) %>%
+    filter(str_detect(impact, "om6")) %>%
+    select(grp, value, label) %>%
+    pivot_wider(names_from = grp)
   
   
   direct_impact_plots <- impacts_output_pres %>%
@@ -232,11 +250,6 @@ server <- function(input, output) {
     impacts_output_pres %>%
     filter(impact %in% c("om3", "om2")) %>%
     arrange(impact) %>%
-    mutate(grp = recode(grp, 
-                        "WESTON GENERAL HOSPITAL" = "at WGH",
-                        "BRISTOL ROYAL INFIRMARY" = "at BRI",
-                        "SOUTHMEAD HOSPITAL" = "at NBT"
-    )) %>%
     nest(.by = c(grp, impact, label)) %>%
     mutate(plot = map(data, \(d) {
       d %>% mutate(x = 1, y = 1)  %>%
@@ -301,11 +314,6 @@ server <- function(input, output) {
   indirect_amb_impact_plots <- 
     impacts_output_pres %>%
     filter(str_detect(impact, "om1")) %>%
-    mutate(grp = recode(grp, 
-                        "cat1" = "(Category 1)",
-                        "cat2" = "(Category 2)",
-                        "cat3" = "(Category 3)"
-    )) %>%
     nest(.by = c(grp, impact, label)) %>%
     mutate(plot = map(data, \(d) {
       d %>% mutate(x = 1, y = 1)  %>%
