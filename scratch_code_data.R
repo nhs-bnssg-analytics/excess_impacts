@@ -429,32 +429,49 @@ get_impact_data <- function(report_start, report_end){
     mutate(pred_readm_cf = map(data, \(d) predict(readm_mod, newdata = mutate(d, dta_time = 1), type = "response"))) %>% 
     mutate(pred_los = map(data, \(d) predict.lm(los_mod, newdata = d))) %>%
     mutate(pred_los_cf = map(data, \(d) predict.lm(los_mod, newdata = mutate(d, dta_time = 1)))) %>%
-    mutate(om6_impact = map2_dbl(pred_mort, pred_mort_cf, ~sum(.x-.y, na.rm = TRUE))) %>%
-    mutate(om6_mean_or = map2_dbl(pred_mort, pred_mort_cf, ~mean((.x/(1-.x))/(.y/(1-.y))-1, na.rm = TRUE))) %>%
-    mutate(om5_impact = map2_dbl(pred_readm, pred_readm_cf, ~sum(.x-.y, na.rm = TRUE))) %>%
-    mutate(om5_mean_or = map2_dbl(pred_readm, pred_readm_cf, ~mean((.x/(1-.x))/(.y/(1-.y))-1, na.rm = TRUE))) %>%
-    mutate(om4_impact = map2_dbl(pred_los, pred_los_cf, ~sum(.x-.y, na.rm = TRUE))) %>%
+    mutate(om6_impact = map_dbl(pred_mort, \(x) sum(x, na.rm = TRUE))) %>%
+    mutate(om6_impact_cf = map_dbl(pred_mort_cf, \(x) sum(x, na.rm = TRUE))) %>%
+    mutate(om5_impact = map_dbl(pred_readm, \(x) sum(x, na.rm = TRUE))) %>%
+    mutate(om5_impact_cf = map_dbl(pred_readm_cf, \(x) sum(x, na.rm = TRUE))) %>%
+    mutate(om4_impact = map_dbl(pred_los, \(x) sum(x, na.rm = TRUE))) %>%
+    mutate(om4_impact_cf = map_dbl(pred_los_cf, \(x) sum(x, na.rm = TRUE))) %>%
+    # mutate(om6_impact = map2_dbl(pred_mort, pred_mort_cf, ~sum(.x-.y, na.rm = TRUE))) %>%
+    # mutate(om6_mean_or = map2_dbl(pred_mort, pred_mort_cf, ~mean((.x/(1-.x))/(.y/(1-.y))-1, na.rm = TRUE))) %>%
+    # mutate(om5_impact = map2_dbl(pred_readm, pred_readm_cf, ~sum(.x-.y, na.rm = TRUE))) %>%
+    # mutate(om5_mean_or = map2_dbl(pred_readm, pred_readm_cf, ~mean((.x/(1-.x))/(.y/(1-.y))-1, na.rm = TRUE))) %>%
+    # mutate(om4_impact = map2_dbl(pred_los, pred_los_cf, ~sum(.x-.y, na.rm = TRUE))) %>%
     select(grp = site, matches("om"), om4_n_exposure = n_exposure, om5_n_exposure = n_exposure, om6_n_exposure = n_exposure) %>%
     pivot_longer(-grp, names_to = "impact") %>%
-    mutate(level = case_when(str_detect(impact, "impact") ~ "aggregate",
-                             !str_detect(impact, "impact|n_exposure") ~ "individual",
-                             .default = NA_character_), 
-           impact = str_remove(impact, "_impact"),
+    mutate(target = NA_real_,
            label = case_when(
-             str_detect(impact, "n_exposure") ~ "number impacted",
-             impact == "om4" ~ "days more LOS",
-             impact == "om4_mean" ~ "average days more LOS",
-             impact == "om5" ~ "readmissions",
-             impact == "om5_mean_or" ~ "average increase in odds of readmission",
-             impact == "om6" ~ "deaths",
-             impact == "om6_mean_or" ~ "average increase in odds of mortality"
-           ),
-           colour = case_when(
-             str_detect(impact, "om4") ~ "#006d77",
-             str_detect(impact, "om5") ~ "#f07d24",
-             str_detect(impact, "om6") ~ "#ef5546"
-           )
-    )
+                      str_detect(impact, "n_exposure") ~ "number impacted",
+                      str_detect(impact, "om4") ~ "days more LOS",
+
+                      str_detect(impact, "om5") ~ "readmissions",
+                      str_detect(impact, "om6") ~ "deaths"
+                    ),
+            unit = NA_character_)
+    
+    
+    # mutate(level = case_when(str_detect(impact, "impact") ~ "aggregate",
+    #                          !str_detect(impact, "impact|n_exposure") ~ "individual",
+    #                          .default = NA_character_), 
+    #        impact = str_remove(impact, "_impact"),
+    #        label = case_when(
+    #          str_detect(impact, "n_exposure") ~ "number impacted",
+    #          impact == "om4" ~ "days more LOS",
+    #          impact == "om4_mean" ~ "average days more LOS",
+    #          impact == "om5" ~ "readmissions",
+    #          impact == "om5_mean_or" ~ "average increase in odds of readmission",
+    #          impact == "om6" ~ "deaths",
+    #          impact == "om6_mean_or" ~ "average increase in odds of mortality"
+    #        ),
+    #        colour = case_when(
+    #          str_detect(impact, "om4") ~ "#006d77",
+    #          str_detect(impact, "om5") ~ "#f07d24",
+    #          str_detect(impact, "om6") ~ "#ef5546"
+    #        )
+    # )
   
   
   
@@ -551,14 +568,15 @@ Conveyed_To_Ward_Type = 'A&E' AND
         map2_df(handover_time, snapshot_seq, ~ bind_cols(tibble(dt = .y), .x)))) %>%
       select(site, handover_df) %>%
       unnest(handover_df) %>%
-      arrange(dt) %>%
-      group_by(site, dt) %>%
-      count() %>%
-      ungroup()
+      arrange(dt) 
+    # %>%
+    #   group_by(site, dt) %>%
+    #   count() %>%
+    #   ungroup()
     
   })
   
-  dta_dats <- local({
+  dat_dtas <- local({
     string_ecds<-glue::glue("select 
                         nhs_number,
                         Attendance_Unique_Identifier,
@@ -732,8 +750,57 @@ Conveyed_To_Ward_Type = 'A&E' AND
     list(dta_df = dat_dtas, dta_top_stats = dat_top_stats)
   })
   
-  dta_df <- dta_dats$dta_df
-  dta_top_stats <- dta_dats$dta_top_stats
+  dta_df <- dat_dtas$dta_df
+  dta_top_stats <- dat_dtas$dta_top_stats
+  
+  dat_ed_time <- local({
+    
+    string_ecds_full<-glue::glue("select 
+                        nhs_number,
+                        Attendance_Unique_Identifier,
+                        Treatment_Function_Code,
+                        Arrival_Date,
+                        Arrival_Time,
+                        Initial_Assessment_Date,
+                        Initial_Assessment_Time,
+                        Seen_For_Treatment_Date,
+                        Seen_For_Treatment_Time,
+                        Decision_To_Admit_Date,
+                        Decision_To_Admit_Time,
+                        Organisation_Code_Commissioner,
+                        Departure_Date,
+                        Departure_Time,
+                        Site_Name,
+                        Acuity_Desc
+      FROM Analyst_SQL_Area.dbo.tbl_BNSSG_ECDS
+      where Site_Name in ('BRISTOL ROYAL INFIRMARY', 'SOUTHMEAD HOSPITAL', 'WESTON GENERAL HOSPITAL')
+      --and Treatment_Function_Code in (300, 326, 430)
+      and Arrival_Date between '{report_start}' and '{report_end}'
+      ")
+    
+    dat_ecds_full_raw<-sqlQuery(con,string_ecds_full)
+    
+    dat_ecds_full <- dat_ecds_full_raw %>%
+      mutate(nhs_number = as.character(nhs_number)) %>%
+      mutate(arrival_dt=as.POSIXct(paste0(Arrival_Date," ",substr(Arrival_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
+      mutate(initial_dt=as.POSIXct(paste0(Initial_Assessment_Date," ",substr(Initial_Assessment_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
+      mutate(treatment_dt=as.POSIXct(paste0(Seen_For_Treatment_Date," ",substr(Seen_For_Treatment_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
+      mutate(dta_dt=paste0(Decision_To_Admit_Date," ",substr(Decision_To_Admit_Time,1,8))) %>%
+      mutate(dta_dt=as.POSIXct(ifelse(grepl("NA",dta_dt),NA,dta_dt),format="%Y-%m-%d %H:%M:%S")) %>%
+      mutate(departure_dt=as.POSIXct(paste0(Departure_Date," ",substr(Departure_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
+      select(nhs_number, Attendance_Unique_Identifier,  tfc = Treatment_Function_Code, Organisation_Code_Commissioner, arrival_dt,initial_dt,treatment_dt,dta_dt,departure_dt,Site_Name, Acuity_Desc) %>%
+      rowwise() %>%
+      mutate(departure_dt=max(dta_dt,departure_dt,na.rm=TRUE)) %>%
+      ungroup() %>%
+      mutate(dta_int = interval(dta_dt, departure_dt)) %>%
+      mutate(dta_time = dta_int/dminutes(1)) %>%
+      mutate(treatment_dt = pmin(treatment_dt, dta_dt, departure_dt, na.rm = TRUE)) %>%
+      mutate(trt_time = interval(arrival_dt, treatment_dt)/dminutes(1)) %>%
+      mutate(dt=floor_date(arrival_dt, glue::glue("{n_hour} hours")))  
+    
+    
+    select(dat_ecds_full, dt, site = Site_Name, trt_time)
+  })
   
   resp_df <- local({
     string_actv_swafst <- glue::glue(
@@ -811,122 +878,179 @@ AND
                                     "Category 2"= "cat2",
                                     "Category 1"= "cat1")) %>%
       mutate(nhs_number = as.character(Derived_Pseudo_NHSNumber)) %>%
-      select(nhs_number, dt, age = Age_Bracket, outcome = Outcome, call_category, response) %>%
-      group_by(dt = floor_date(dt, "2 hours"), call_category) %>%
-      summarise(n = n(), response = sum(response)) %>%
-      ungroup() %>%
-      na.omit()
+      select(nhs_number, dt, age = Age_Bracket, outcome = Outcome, call_category, response) #%>%
+      # group_by(dt = floor_date(dt, "2 hours"), call_category) %>%
+      # summarise(n = n(), response = sum(response)) %>%
+      # ungroup() %>%
+      # na.omit()
     
     dat 
   })
   
-  ed_attend_impact <- dta_df %>%
-    select(site, n_arrival_all, n_dta_norm) %>%
-    mutate(ed_time_impact = (n_dta_norm * ed_time_coef * n_arrival_all)/60) %>%
-    select(-n_dta_norm) %>%
-    summarise(om3_n_exposure = sum(n_arrival_all),
-              ed_time_impact = sum(ed_time_impact),
-              .by = site) %>%
-    mutate(ed_time_impact_mean = ed_time_impact/om3_n_exposure) %>%
-    select(grp = site, ed_time_impact, ed_time_impact_mean, om3_n_exposure)  %>%
+  ed_attend_impact <- dat_ed_time %>%
+      left_join(dta_df %>% select(site, dt, n_dta_norm)) %>%
+    mutate(ed_time_impact = (n_dta_norm * ed_time_coef)) %>%
+    mutate(ed_time_impact_cf = (pmin(n_dta_norm, 0.25) * ed_time_coef)) %>%
+    mutate(diff = ed_time_impact - ed_time_impact_cf) %>%
+    mutate(trt_time_cf = trt_time - diff) %>%
+    summarise(across(c(trt_time, trt_time_cf), \(x) mean(x < 4*60)), .by = site) %>%
+    rename(grp = site, om3_impact= trt_time, om3_impact_cf = trt_time_cf) %>%
     pivot_longer(-grp, names_to = "impact") %>%
-    mutate(impact = recode(impact,
-                           "ed_time_impact" = "om3",
-                           "ed_time_impact_mean" = "om3_mean"
-    )) %>%
-    mutate(
-      level = case_when(
-        impact == "om3" ~ "aggregate",
-        impact == "om3_mean" ~ "individual"
-      ),
-      label = case_when(
-        str_detect(impact, "n_exposure") ~ "number exposed",
-        impact == "om3" ~ "hours longer to be seen for treatment in ED",
-        impact == "om3_mean" ~ "average hours waited longer to be seen for treatment in ED"
-      ),
-      colour = case_when(
-        impact == "om3" ~ "#A89532",
-        impact == "om3_mean" ~ "#A89532"
-      )) 
+    mutate(target = 0.78,
+           label = "4-hour seen for treatment performance",
+           unit = "%")
+
+    # select(-n_dta_norm) %>%
+    # summarise(om3_n_exposure = sum(n_arrival_all),
+    #           ed_time_impact = sum(ed_time_impact),
+    #           .by = site) %>%
+    # mutate(ed_time_impact_mean = ed_time_impact/om3_n_exposure) %>%
+    # select(grp = site, ed_time_impact, ed_time_impact_mean, om3_n_exposure)  %>%
+    # pivot_longer(-grp, names_to = "impact") %>%
+    # mutate(impact = recode(impact,
+    #                        "ed_time_impact" = "om3",
+    #                        "ed_time_impact_mean" = "om3_mean"
+    # )) %>%
+    # mutate(
+    #   level = case_when(
+    #     impact == "om3" ~ "aggregate",
+    #     impact == "om3_mean" ~ "individual"
+    #   ),
+    #   label = case_when(
+    #     str_detect(impact, "n_exposure") ~ "number exposed",
+    #     impact == "om3" ~ "hours longer to be seen for treatment in ED",
+    #     impact == "om3_mean" ~ "average hours waited longer to be seen for treatment in ED"
+    #   ),
+    #   colour = case_when(
+    #     impact == "om3" ~ "#A89532",
+    #     impact == "om3_mean" ~ "#A89532"
+    #   )) 
   
   
   
-  handover_impact <- dta_df %>%
-    select(site, dt, n_arrival_all, n_dta_norm) %>%
-    left_join(handover_arrivals) %>%
-    mutate(n_handover = coalesce(n, 0)) %>%
-    select(-n, -dt) %>%
-    mutate(
-      handover_impact = (n_dta_norm * handover_coef * n_handover)/60,
-    ) %>%
-    select(-n_dta_norm) %>%
-    summarise(om2_n_exposure = sum(n_handover),
-              handover_impact = sum(handover_impact),
-              .by = site) %>%
-    mutate(handover_impact_mean = handover_impact/om2_n_exposure) %>%
-    select(grp = site, handover_impact, handover_impact_mean, om2_n_exposure)  %>%
+  handover_impact <- handover_arrivals %>%
+    ungroup() %>%
+    mutate(handover_time = handover_time/60) %>%
+    left_join(select(dta_df, site, dt, n_dta_norm)) %>%
+    mutate(handover_time_impact = (n_dta_norm * handover_coef)) %>%
+    mutate(handover_time_impact_cf = (pmin(n_dta_norm, 0.25) * handover_coef)) %>%
+    mutate(diff = handover_time_impact - handover_time_impact_cf) %>%
+    mutate(handover_time_cf = handover_time - diff) %>%
+    summarise(across(c(handover_time, handover_time_cf), \(x) quantile(x, .9, na.rm = TRUE))/60, .by = site) %>%
+    rename(grp = site, om2_impact= handover_time, om2_impact_cf = handover_time_cf) %>%
     pivot_longer(-grp, names_to = "impact") %>%
-    mutate(impact = recode(impact,
-                           "handover_impact" = "om2",
-                           "handover_impact_mean" = "om2_mean"
-    )) %>%
-    mutate(
-      level = case_when(
-        impact == "om2" ~ "aggregate",
-        impact == "om2_mean" ~ "individual"
-      ),
-      label = case_when(
-        str_detect(impact, "n_exposure") ~ "number impacted",
-        impact == "om2" ~ "hours longer for ambulance handover",
-        impact == "om2_mean" ~ "average hours waited longer for ambulance handover"
-      ),
-      colour = case_when(
-        impact == "om2" ~ "#9532a8",
-        impact == "om2_mean" ~ "#9532a8"
-      )) 
+    mutate(target = 30,
+           label = "90th percentile ambulance handover time",
+           unit = "minutes")
+  
+    # dta_df %>%
+    # select(site, dt, n_arrival_all, n_dta_norm) %>%
+    # left_join() %>%
+    # mutate(n_handover = coalesce(n, 0)) %>%
+    # select(-n, -dt) %>%
+    # mutate(
+    #   handover_impact = (n_dta_norm * handover_coef * n_handover)/60,
+    # ) %>%
+    # select(-n_dta_norm) %>%
+    # summarise(om2_n_exposure = sum(n_handover),
+    #           handover_impact = sum(handover_impact),
+    #           .by = site) %>%
+    # mutate(handover_impact_mean = handover_impact/om2_n_exposure) %>%
+    # select(grp = site, handover_impact, handover_impact_mean, om2_n_exposure)  %>%
+    # pivot_longer(-grp, names_to = "impact") %>%
+    # mutate(impact = recode(impact,
+    #                        "handover_impact" = "om2",
+    #                        "handover_impact_mean" = "om2_mean"
+    # )) %>%
+    # mutate(
+    #   level = case_when(
+    #     impact == "om2" ~ "aggregate",
+    #     impact == "om2_mean" ~ "individual"
+    #   ),
+    #   label = case_when(
+    #     str_detect(impact, "n_exposure") ~ "number impacted",
+    #     impact == "om2" ~ "hours longer for ambulance handover",
+    #     impact == "om2_mean" ~ "average hours waited longer for ambulance handover"
+    #   ),
+    #   colour = case_when(
+    #     impact == "om2" ~ "#9532a8",
+    #     impact == "om2_mean" ~ "#9532a8"
+    #   )) 
   
   
-  resp_impact <- dta_df %>%
+  
+  resp_impact <- resp_df %>%
+    left_join(
+    dta_df %>%
     select(site, dt, n_dta_norm) %>%
-    summarise(n_dta_norm = mean(n_dta_norm), .by = dt) %>% 
-    # expand_grid(call_category = unique(resp_df$call_category)) %>%
-    left_join(complete(resp_df, dt = snapshot_seq, call_category, fill = list(n = 0, response = 0))) %>%
-    select(-dt) %>%
-    left_join(unnest(enframe(resp_coef, name = "call_category", value = "coef"), cols = coef)) %>% 
-    mutate(
-      resp_impact = (n_dta_norm * coef * n)/60
-    ) %>% 
-    select(-c(n_dta_norm, coef)) %>%
-    summarise(n_exposure = sum(n),
-              resp_impact = sum(resp_impact),
-              .by = call_category)  %>%
-    mutate(resp_impact_mean = resp_impact/n_exposure) %>%
-    select(grp = call_category, resp_impact, resp_impact_mean, n_exposure)  %>%
-    pivot_longer(-grp, names_to = "impact") %>%
-    mutate(impact = case_when(
-      grp == "cat1" & str_detect(impact, "resp_impact") ~ str_replace(impact, "resp_impact", "om1a"),
-      grp == "cat2" & str_detect(impact, "resp_impact") ~ str_replace(impact, "resp_impact", "om1b"),
-      grp == "cat3" & str_detect(impact, "resp_impact") ~ str_replace(impact, "resp_impact", "om1c"),
-      grp == "cat1" & str_detect(impact, "n_exposure") ~ str_c("om1a_", impact),
-      grp == "cat2" & str_detect(impact, "n_exposure") ~ str_c("om1b_", impact),
-      grp == "cat3" & str_detect(impact, "n_exposure") ~ str_c("om1c_", impact),
-      .default = impact
-    )
+    summarise(n_dta_norm = mean(n_dta_norm), .by = dt)
     ) %>%
+    left_join(rename(unnest(enframe(resp_coef), value), call_category = name, coef = value)) %>%
+    mutate(response_impact = (n_dta_norm * coef)) %>%
+    mutate(response_impact_cf = (pmin(n_dta_norm, 0.25) * coef))  %>%
+    mutate(diff = response_impact - response_impact_cf) %>%
+    mutate(response_cf = pmax(0, response - diff)) %>%
+    summarise(across(c(response, response_cf), \(x) quantile(x, .9, na.rm = TRUE)), .by = call_category) %>%
+    rename(grp = call_category, om1_impact= response, om1_impact_cf = response_cf) %>%
+    pivot_longer(-grp, names_to = "impact") %>%
     mutate(
-      level = case_when(
-        str_detect(impact, "om1[abc]$") ~ "aggregate",
-        str_detect(impact, "om1[abc]_mean$") ~ "individual"
-      ),
-      label = case_when(
-        str_detect(impact, "n_exposure") ~ "number impacted",
-        str_detect(impact, "om1[abc]$") ~ "hours longer for ambulance response",
-        str_detect(impact, "om1[abc]_mean$") ~ "average hours waited longer for ambulance response"
-      ),
-      colour = case_when(
-        str_detect(impact, "om1[abc]$") ~ "#32A895",
-        str_detect(impact, "om1[abc]_mean$") ~ "#32A895"
-      )) 
+    impact = case_when(
+      grp == "cat1" ~ str_replace(impact, "om1", "om1a"),
+      grp == "cat2" ~ str_replace(impact, "om1", "om1b"),
+      grp == "cat3" ~ str_replace(impact, "om1", "om1c")
+      ),  
+    target = case_when(
+      grp == "cat1" ~ 15,
+      grp == "cat2" ~ 40,
+      grp == "cat3" ~ 120
+    ),
+    label = "90th percentile response time",
+    unit = "minutes")
+    
+  
+  # resp_impact <- dta_df %>%
+  #   select(site, dt, n_dta_norm) %>%
+  #   summarise(n_dta_norm = mean(n_dta_norm), .by = dt) %>% 
+  #   # expand_grid(call_category = unique(resp_df$call_category)) %>%
+  #   left_join(complete(resp_df, dt = snapshot_seq, call_category, fill = list(n = 0, response = 0))) %>%
+  #   select(-dt) %>%
+  #   left_join(unnest(enframe(resp_coef, name = "call_category", value = "coef"), cols = coef)) %>% 
+  #   mutate(
+  #     resp_impact = (n_dta_norm * coef * n)/60
+  #   ) %>% 
+  #   select(-c(n_dta_norm, coef)) %>%
+  #   summarise(n_exposure = sum(n),
+  #             resp_impact = sum(resp_impact),
+  #             .by = call_category)  %>%
+  #   mutate(resp_impact_mean = resp_impact/n_exposure) %>%
+  #   select(grp = call_category, resp_impact, resp_impact_mean, n_exposure)  %>%
+  #   pivot_longer(-grp, names_to = "impact") %>%
+  #   mutate(impact = case_when(
+  #     grp == "cat1" & str_detect(impact, "resp_impact") ~ str_replace(impact, "resp_impact", "om1a"),
+  #     grp == "cat2" & str_detect(impact, "resp_impact") ~ str_replace(impact, "resp_impact", "om1b"),
+  #     grp == "cat3" & str_detect(impact, "resp_impact") ~ str_replace(impact, "resp_impact", "om1c"),
+  #     grp == "cat1" & str_detect(impact, "n_exposure") ~ str_c("om1a_", impact),
+  #     grp == "cat2" & str_detect(impact, "n_exposure") ~ str_c("om1b_", impact),
+  #     grp == "cat3" & str_detect(impact, "n_exposure") ~ str_c("om1c_", impact),
+  #     .default = impact
+  #   )
+  #   ) %>%
+  #   mutate(
+  #     level = case_when(
+  #       str_detect(impact, "om1[abc]$") ~ "aggregate",
+  #       str_detect(impact, "om1[abc]_mean$") ~ "individual"
+  #     ),
+  #     label = case_when(
+  #       str_detect(impact, "n_exposure") ~ "number impacted",
+  #       str_detect(impact, "om1[abc]$") ~ "hours longer for ambulance response",
+  #       str_detect(impact, "om1[abc]_mean$") ~ "average hours waited longer for ambulance response"
+  #     ),
+  #     colour = case_when(
+  #       str_detect(impact, "om1[abc]$") ~ "#32A895",
+  #       str_detect(impact, "om1[abc]_mean$") ~ "#32A895"
+  #     )) 
+  
+  
   
   
   
@@ -940,7 +1064,7 @@ AND
     colour = NA_character_)
   
   impacts_output <- bind_rows(list(
-    dta_top_stats,
+    # dta_top_stats,
     downstream_impacts,
     ed_attend_impact,
     handover_impact,
@@ -960,6 +1084,27 @@ out_2 <- get_impact_data(report_start = report_start - ddays(7),
 
 
 saveRDS(bind_rows(out, out_2), "data/avoidable_impacts_output.RDS")
+
+
+out %>%
+  filter(str_detect(impact, "om(1b|3)")) %>%
+  group_by(foo = str_remove_all(impact, "_cf")) %>%
+  nest() %>%
+  mutate(impact_plot = map(data, \(d) d %>%
+  ggplot(aes(y = impact, x = value, fill = impact)) +
+  geom_col() +
+  geom_vline(aes(xintercept = target), linetype = 2, size = 2) +
+  geom_text(aes(x = 1*value, label = glue::glue("{round(value)} {unit}")), fill = NA, size = 10, hjust = -0.1) +
+  theme_minimal() +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.5))) +
+  theme(legend.position = "off",
+        axis.text.y = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()
+        ) +
+  labs(y = "", x = "")
+  )) %>%
+  pull(impact_plot)
 
 
 # out_ts <- map(seq.Date(ymd("2024-06-01"), ymd("2025-02-01"), by = "weeks"), \(d) {
