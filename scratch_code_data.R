@@ -10,7 +10,7 @@ library(marquee)
 con_string <- "driver={SQL Server};\n  server=Xsw-00-ash01;\n  trusted_connection=true"
 con<-odbcDriverConnect(con_string)
 
-report_end <- today() - ddays(3)
+report_end <- today() - ddays(7)
 report_start <- report_end - ddays(6)
 
 n_hour <- 2
@@ -420,6 +420,7 @@ get_impact_data <- function(report_start, report_end){
   })
   
   downstream_impacts <- dat_downstream %>%
+    bind_rows(mutate(., site = "System total")) %>%
     nest(.by = site) %>%
     mutate(data = map(data, \(d) bake(vw_impute_rec, new_data = mutate(d, vw_score = NA_real_)))) %>%
     mutate(n_exposure = map_dbl(data, nrow)) %>%
@@ -435,6 +436,7 @@ get_impact_data <- function(report_start, report_end){
     mutate(om5_impact_cf = map_dbl(pred_readm_cf, \(x) sum(x, na.rm = TRUE))) %>%
     mutate(om4_impact = map_dbl(pred_los, \(x) sum(x, na.rm = TRUE))) %>%
     mutate(om4_impact_cf = map_dbl(pred_los_cf, \(x) sum(x, na.rm = TRUE))) %>%
+    mutate(across(matches("om4_impact"), \(x) x/7)) %>%
     # mutate(om6_impact = map2_dbl(pred_mort, pred_mort_cf, ~sum(.x-.y, na.rm = TRUE))) %>%
     # mutate(om6_mean_or = map2_dbl(pred_mort, pred_mort_cf, ~mean((.x/(1-.x))/(.y/(1-.y))-1, na.rm = TRUE))) %>%
     # mutate(om5_impact = map2_dbl(pred_readm, pred_readm_cf, ~sum(.x-.y, na.rm = TRUE))) %>%
@@ -445,12 +447,12 @@ get_impact_data <- function(report_start, report_end){
     mutate(target = NA_real_,
            label = case_when(
                       str_detect(impact, "n_exposure") ~ "number impacted",
-                      str_detect(impact, "om4") ~ "days more LOS",
+                      str_detect(impact, "om4") ~ "Medical beds occupied",
 
                       str_detect(impact, "om5") ~ "readmissions",
                       str_detect(impact, "om6") ~ "deaths"
                     ),
-            unit = NA_character_)
+            value_label = str_c(number(round(value), big.mark = ","), " ", label))
     
     
     # mutate(level = case_when(str_detect(impact, "impact") ~ "aggregate",
@@ -893,12 +895,15 @@ AND
     mutate(ed_time_impact_cf = (pmin(n_dta_norm, 0.25) * ed_time_coef)) %>%
     mutate(diff = ed_time_impact - ed_time_impact_cf) %>%
     mutate(trt_time_cf = trt_time - diff) %>%
-    summarise(across(c(trt_time, trt_time_cf), \(x) mean(x < 4*60)), .by = site) %>%
+    bind_rows(mutate(., site = "System total")) %>%
+    summarise(across(c(trt_time, trt_time_cf), \(x) mean(x < 4*60, na.rm = TRUE)), .by = site) %>%
     rename(grp = site, om3_impact= trt_time, om3_impact_cf = trt_time_cf) %>%
     pivot_longer(-grp, names_to = "impact") %>%
     mutate(target = 0.78,
            label = "4-hour seen for treatment performance",
-           unit = "%")
+           value_label = percent(value, accuracy = 0.1)
+           # value_label = percent(plyr::round_any(value, 0.025), accuracy = 0.01)
+           )
 
     # select(-n_dta_norm) %>%
     # summarise(om3_n_exposure = sum(n_arrival_all),
@@ -936,12 +941,13 @@ AND
     mutate(handover_time_impact_cf = (pmin(n_dta_norm, 0.25) * handover_coef)) %>%
     mutate(diff = handover_time_impact - handover_time_impact_cf) %>%
     mutate(handover_time_cf = handover_time - diff) %>%
-    summarise(across(c(handover_time, handover_time_cf), \(x) quantile(x, .9, na.rm = TRUE))/60, .by = site) %>%
+    bind_rows(mutate(., site = "System total")) %>%
+    summarise(across(c(handover_time, handover_time_cf), \(x) quantile(x, .9, na.rm = TRUE)), .by = site) %>%
     rename(grp = site, om2_impact= handover_time, om2_impact_cf = handover_time_cf) %>%
     pivot_longer(-grp, names_to = "impact") %>%
     mutate(target = 30,
            label = "90th percentile ambulance handover time",
-           unit = "minutes")
+           value_label = str_c(round(value), " minutes"))
   
     # dta_df %>%
     # select(site, dt, n_arrival_all, n_dta_norm) %>%
@@ -1005,7 +1011,7 @@ AND
       grp == "cat3" ~ 120
     ),
     label = "90th percentile response time",
-    unit = "minutes")
+    value_label = str_c(round(value), " minutes"))
     
   
   # resp_impact <- dta_df %>%
@@ -1052,19 +1058,20 @@ AND
   
   
   
-  
-  
   dta_top_stats <- dta_top_stats %>%
     rename(grp = Site_Name) %>%
+    bind_rows(mutate(., grp = "System total")) %>%
+    summarise(across(everything(), sum), .by = grp) %>%
     pivot_longer(-grp, names_to = "impact") %>%
     mutate(label = case_when(
       impact == "n_dta" ~ "emergency medical admissions",
       impact == "dta_time" ~ "hours waited for admission",
     ),
-    colour = NA_character_)
+    target = NA_real_,
+    value_label = ifelse(impact == "dta_time", str_c(round(value/(60*24)), " days"), ""))
   
   impacts_output <- bind_rows(list(
-    # dta_top_stats,
+    dta_top_stats,
     downstream_impacts,
     ed_attend_impact,
     handover_impact,
