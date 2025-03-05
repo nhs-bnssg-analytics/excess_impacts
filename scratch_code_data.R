@@ -452,7 +452,7 @@ get_impact_data <- function(report_start, report_end){
                       str_detect(impact, "om5") ~ "readmissions",
                       str_detect(impact, "om6") ~ "deaths"
                     ),
-            value_label = str_c(number(round(value), big.mark = ","), " ", label))
+            value_label = str_c("<span style='font-weight:bold;font-size:40pt;'>", number(round(value), big.mark = ","), "</span><br><span style='font-size:20pt'>", label, "</span>"))
     
     
     # mutate(level = case_when(str_detect(impact, "impact") ~ "aggregate",
@@ -783,6 +783,7 @@ Conveyed_To_Ward_Type = 'A&E' AND
     dat_ecds_full_raw<-sqlQuery(con,string_ecds_full)
     
     dat_ecds_full <- dat_ecds_full_raw %>%
+      filter(is.na(Decision_To_Admit_Date)) %>%
       mutate(nhs_number = as.character(nhs_number)) %>%
       mutate(arrival_dt=as.POSIXct(paste0(Arrival_Date," ",substr(Arrival_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
       mutate(initial_dt=as.POSIXct(paste0(Initial_Assessment_Date," ",substr(Initial_Assessment_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
@@ -901,7 +902,11 @@ AND
     pivot_longer(-grp, names_to = "impact") %>%
     mutate(target = 0.78,
            label = "4-hour seen for treatment performance",
-           value_label = percent(value, accuracy = 0.1)
+           value_label = str_c("<span style='font-weight:bold;font-size:40pt;'>", 
+                               percent(value, accuracy = 0.1),
+                               "</span><br><span style='font-size:20pt'>",
+                               "4-hour performance",
+                               "</span>")
            # value_label = percent(plyr::round_any(value, 0.025), accuracy = 0.01)
            )
 
@@ -947,7 +952,12 @@ AND
     pivot_longer(-grp, names_to = "impact") %>%
     mutate(target = 30,
            label = "90th percentile ambulance handover time",
-           value_label = str_c(round(value), " minutes"))
+           value_label = str_c("<span style='font-weight:bold;font-size:40pt;'>",
+                               round(value),
+                               " minutes",
+                               "</span><br><span style='font-size:20pt'>",
+                               "ambulance handover<br>(90<sup>th</sup> percentile)",
+                               "</span>"))
   
     # dta_df %>%
     # select(site, dt, n_arrival_all, n_dta_norm) %>%
@@ -1011,7 +1021,13 @@ AND
       grp == "cat3" ~ 120
     ),
     label = "90th percentile response time",
-    value_label = str_c(round(value), " minutes"))
+    value_label = str_c("<span style='font-weight:bold;font-size:40pt;'>",
+                        round(value),
+                        " minutes",
+                        "</span><br><span style='font-size:20pt'>",
+                        gsub(r"(cat(\d{1}))", "Cat-\\1 ", grp),
+                        "ambulance response<br>(90<sup>th</sup> percentile)",
+                        "</span>"))
     
   
   # resp_impact <- dta_df %>%
@@ -1057,7 +1073,6 @@ AND
   #     )) 
   
   
-  
   dta_top_stats <- dta_top_stats %>%
     rename(grp = Site_Name) %>%
     bind_rows(mutate(., grp = "System total")) %>%
@@ -1068,7 +1083,7 @@ AND
       impact == "dta_time" ~ "hours waited for admission",
     ),
     target = NA_real_,
-    value_label = ifelse(impact == "dta_time", str_c(round(value/(60*24)), " days"), ""))
+    value_label = ifelse(impact == "dta_time", str_c("**", round(value/(60*24)), "**", " days"), ""))
   
   impacts_output <- bind_rows(list(
     dta_top_stats,

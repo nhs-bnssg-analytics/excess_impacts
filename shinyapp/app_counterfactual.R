@@ -222,24 +222,30 @@ server <- function(input, output) {
     )
   }
   
+
+  
   foo <- impacts_output %>%
     filter(report_date == max(report_date)) %>%
     filter(grp %in% c("System total", "(Category 2)")) %>%
     filter(str_detect(impact, "om"),
-           !str_detect(impact, "(n_exposure|om2|om5)")) %>%
+           !str_detect(impact, "(n_exposure|om5)")) %>%
     select(impact, value, label, target, value_label) %>%
     mutate(impact_grp = str_remove_all(impact, "_impact(_cf)?")) %>%
+    # mutate(value_label = gsub(r"((\*\*.*\*\* )(.*))", "<span style='font-weight:bold;font-size:40pt;'>\\1</span><br><span style='font-size:20pt'>\\2</span>", value_label)) %>%
+    # mutate(value_label = str_remove_all(value_label, "\\*\\*")) %>%
     nest(.by = impact_grp) %>%
     mutate(impact_plot = map(data, \(d) {d %>%
         ggplot(aes(x = impact, y = value, fill = impact, style = classic_style(align = "center"))) +
         geom_col() +
         geom_hline(aes(yintercept = target), linetype = 2, size = 2) +
-        geom_marquee(aes(y = 1*value, label = value_label), width = unit(10, "cm"), fill = NA, size = 10, vjust = -0.3) +
+        geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = c(-0), width = unit(0.4, "npc")) +
+        # geom_marquee(aes(y = 1*value, label = value_label), width = unit(10, "cm"), fill = NA, size = 10, vjust = -0.3) +
         theme_minimal() +
         scale_y_continuous(expand = expansion(mult = c(0, 0.5))) +
         scale_fill_manual(values = c("#E4604A", "#A3A78F")) +
         theme(legend.position = "off",
               axis.text.x = element_blank(),
+              axis.text.y = element_blank(),
               panel.grid.major = element_blank(),
               panel.grid.minor = element_blank()
         ) +
