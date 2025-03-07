@@ -1,6 +1,6 @@
+library(tidyverse)
 library(shiny)
 library(bslib)
-library(ggplot2)
 library(ggtext)
 
 ui <- page_fluid(
@@ -21,8 +21,20 @@ ui <- page_fluid(
     }
     .no-border-no-pad {
       padding: 0px !important;
+      margin: 0 !important;
       border: none !important;
       box-shadow: none !important;
+      --bs-card-spacer-y: 0 !important;
+      --bs-card-spacer-x: 0 !important;
+    }
+    .no-border-no-pad-text-center {
+      padding: 0px !important;
+      margin: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+      display: grid;
+      place-items: center start;
+      height: 100%;
       --bs-card-spacer-y: 0 !important;
       --bs-card-spacer-x: 0 !important;
     }
@@ -79,7 +91,7 @@ ui <- page_fluid(
         border-left: 4px solid darkgray;
         z-index: 1000;
       }
-            .primary-text {
+      .primary-text {
         font-size: 30pt;
         margin-bottom: 1rem;
       }
@@ -92,24 +104,47 @@ ui <- page_fluid(
       .bslib-column-wrap {
         overflow: hidden !important;
       }
+      .card {
+       border-radius: 0 !important;
+      }
+      .layout-column-no-gap {
+      --bs-layout-columns-gap: 0 !important;
+      --bs-layout-rows-gap: 0 !important;
+      }
+            /* Remove vertical padding from select inputs */
+      .form-group {
+        margin-bottom: 0 !important;
+        margin-top: 0 !important;
+        padding-bottom: 0 !important;
+        padding-top: 0 !important;
+      }
+      
+      /* Optional: adjust the select box itself if needed */
+      .selectize-control {
+        margin-bottom: 0 !important;
+        margin-top: 0 !important;
+      }
   ")
   ),
 
   style = "height: 100vh; gap: 0rem; overflow: hidden !important; display: flex; flex-direction: column;",
   
+  layout_columns(gap = "0px", col_widths = c(7, 2, 3),style = "width: 27%;", uiOutput("report_date"), HTML("<div>Run report for:</div>"), selectInput("grp_select", label = NULL, choices = c("System total", "BRI", "NBT", "WGH"))),
+  
   # Top heading paragraph
   card(
     full_screen = FALSE,
-    height = "8%",
+    height = "10%",
     class = "no-border-no-pad",
     style = "overflow: hidden !important;",
+    gap = "0px",
     uiOutput("header")
   ),
 
   # Two horizontally split cards
   layout_columns(
-    height = "12%",
-    col_widths = c(3, 3, 6),
+    height = "10%",
+    col_widths = c(4, 2, 2, 4),
     gap = "0px",
     style = "overflow: hidden !important;",
     card(
@@ -141,31 +176,34 @@ ui <- page_fluid(
       class = "no-border-no-pad",
       style = "overflow: hidden !important;",
       div(
-        style = "display: flex; justify-content: flex-start; align-items: top; height: 100%; width: 35%; padding-left: 10px; overflow: hidden;",
+        style = "display: flex; justify-content: flex-start; align-items: top; height: 100%; padding-left: 10px; overflow: hidden;",
         HTML("<h5 style='color: #A3A78F;' class='scale-text'>..scenario where medical D2A waits & the medical D2A queue where kept under 1 hour and 25% of the bedded capacity of the ED respectively:</h5>")
       )
     )
   ),
   # Main layout - 3 columns
   layout_columns(
-    height = "75%",
+    height = "72%",
     col_widths = c(4, 4, 4),
-    gap = "10px",
+    gap = "0px",
+    # style = "overflow: hidden !important;",
+    class = "layout-column-no-gap",
     
     # Left column - 2 cards with HTML text
     layout_column_wrap(
       width = 1,
       height = "100%",
-      style = "padding: 0;",
+      class = "no-border-no-pad-text-center",
+      # style = "padding: 0;",
       
       # Top left card
       card(
         full_screen = FALSE,
-        class = "no-border",
+        class = "no-border-no-pad-text-center",
         height = "48%",
         card_body(
           HTML("<h4>Direct Impacts</h4>
-               <p>Delays for admissions have direct impacts on those patients waiting.
+               <p>Delays to admission have direct impacts on those patients waiting.
                We have found associations with higher 30-day mortality rates and in-hospital length of stay.</p>
                <ul>"
                )
@@ -175,7 +213,7 @@ ui <- page_fluid(
       # Bottom left card
       card(
         full_screen = FALSE,
-        class = "no-border",
+        class = "no-border-no-pad-text-center",
         height = "48%",
         card_body(
           HTML("<h4>Indirect Impacts</h4>
@@ -206,28 +244,32 @@ ui <- page_fluid(
             
             # Chart 1
             card(
-              style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
+              class = "no-border-no-pad",
+              # style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
               height = "23%",
               card_body(plotOutput("chart1", height = "100%"))
             ),
             
             # Chart 2
             card(
-              style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
+              class = "no-border-no-pad",
+              # style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
               height = "23%",
               card_body(plotOutput("chart2", height = "100%"))
             ),
             
             # Chart 3
             card(
-              style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
+              class = "no-border-no-pad",
+              # style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
               height = "23%",
               card_body(plotOutput("chart3", height = "100%"))
             ),
             
             # Chart 4
             card(
-              style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
+              class = "no-border-no-pad",
+              # style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
               height = "23%",
               card_body(plotOutput("chart4", height = "100%"))
             )
@@ -239,64 +281,57 @@ ui <- page_fluid(
     # Right column - 4 cards with HTML text
     layout_column_wrap(
       width = 1,
-      class = "no-border",
       height = "100%",
-      style = "padding: 0;",
+      class = "no-border-no-pad-text-center",
+      # style = "padding: 0;",
       
-      # Cards stacked vertically
+      # Right card 1
       card(
-        class = "no-border",
-        full_screen = FALSE,
-        height = "100%",
+        class = "no-border-no-pad-text-center",
+        height = "23%",
+        style = "margin-bottom: 8px;",
+        # Small gap between inner cards
         card_body(
-          layout_column_wrap(
-            width = 1,
-            heights_equal = "row",
-            
-            # Right card 1
-            card(
-              class = "no-border-no-pad",
-              height = "23%",
-              card_body(
-                HTML("<h4>Analysis</h4>
-                     <p>This metric shows a comparison between actual and target values for Category A.</p>
-                     <p>Current trend: <span style='color:green;'>Positive</span></p>")
-              )
-            ),
-            
-            # Right card 2
-            card(
-              class = "no-border-no-pad",
-              height = "23%",
-              card_body(
-                HTML("<h4>Analysis</h4>
-                     <p>Category B metrics compare current performance against historical benchmarks.</p>
-                     <p>Current trend: <span style='color:orange;'>Steady</span></p>")
-              )
-            ),
-            
-            # Right card 3
-            card(
-              class = "no-border-no-pad",
-              height = "23%",
-              card_body(
-                HTML("<h4>Analysis</h4>
-                     <p>Operational metrics in Category C show our efficiency measures.</p>
-                     <p>Current trend: <span style='color:green;'>Improving</span></p>")
-              )
-            ),
-            
-            # Right card 4
-            card(
-              class = "no-border-no-pad",
-              height = "23%",
-              card_body(
-                HTML("<h4>Analysis</h4>
-                     <p>Outcome measures in Category D reflect overall business impact.</p>
-                     <p>Current trend: <span style='color:blue;'>Mixed</span></p>")
-              )
-            )
-          )
+          style = "padding: 10px;",
+          # Reduce internal padding but keep some for readability
+          uiOutput("mort_subtext")
+        )
+      ),
+      
+      # Right card 2
+      card(
+        class = "no-border-no-pad-text-center",
+        height = "23%",
+        style = "margin-bottom: 8px;",
+        # Small gap between inner cards
+        card_body(
+          style = "padding: 10px;",
+          # Reduce internal padding but keep some for readability
+          uiOutput("los_subtext")
+        )
+      ),
+      
+      # Right card 3
+      card(
+        class = "no-border-no-pad-text-center",
+        height = "23%",
+        style = "margin-bottom: 8px;",
+        # Small gap between inner cards
+        card_body(
+          style = "padding: 10px;",
+          # Reduce internal padding but keep some for readability
+          uiOutput("resp_subtext")
+        )
+      ),
+      
+      # Right card 4
+      card(
+        class = "no-border-no-pad-text-center",
+        height = "23%",
+        card_body(
+          style = "padding: 10px;",
+          # Reduce internal padding but keep some for readability
+          uiOutput("handover_subtext")
         )
       )
     )
@@ -328,12 +363,18 @@ server <- function(input, output) {
   wi <- c(4/9, 5/9)
   hi <- c(4/5, 1/5)
   
+  n_admits <- with(impacts_output, expr = {value[impact == 'n_dta' & grp == 'System total' & report_date == max(report_date)]})
+  
+  output$report_date <- renderUI(
+    HTML(glue::glue(
+      "Report based on data from {format(max(impacts_output$report_date), '%d %B %Y')}"
+    )))
+  
   output$header <- renderUI(h5(
     HTML(glue::glue(
-      "<p>Over the last <b>7 days</b>, our emergency departments saw <b>{with(impacts_output, expr = {value[impact == 'n_dta' & grp == 'System total' & report_date == max(report_date)]})} medical admissions</b>. These patients spent a combined <b>{round(with(impacts_output, expr = {value[impact == 'dta_time' & grp == 'System total' & report_date == max(report_date)]})/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance."
+      "<p>Over the last <b>7 days</b>, our emergency departments saw <b>{n_admits} medical admissions</b>. These patients spent a combined <b>{round(with(impacts_output, expr = {value[impact == 'dta_time' & grp == 'System total' & report_date == max(report_date)]})/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance."
     ))
   ))
-  
   
   
   impact_plots <- impacts_output %>%
@@ -347,30 +388,96 @@ server <- function(input, output) {
     # mutate(value_label = str_remove_all(value_label, "\\*\\*")) %>%
     nest(.by = impact_grp) %>%
     mutate(impact_plot = map(data, \(d) {d %>%
-        ggplot(aes(x = impact, y = value, fill = impact, style = classic_style(align = "center"))) +
+        ggplot(aes(x = impact, y = value, fill = impact)) +
         geom_col() +
-        geom_hline(aes(yintercept = target), linetype = 2, size = 2) +
+        geom_hline(aes(yintercept = target), linetype = 2, size = 2, colour = "grey30") +
         geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = c(-0), width = unit(0.4, "npc")) +
         # geom_marquee(aes(y = 1*value, label = value_label), width = unit(10, "cm"), fill = NA, size = 10, vjust = -0.3) +
         theme_void() +
-        scale_y_continuous(expand = expansion(mult = c(0, 0.75))) +
+        scale_y_continuous(expand = expansion(mult = c(0, 0.25))) +
         scale_fill_manual(values = c("#E4604A", "#A3A78F")) +
         theme(legend.position = "off",
               plot.margin = margin(0, 0, 0, 0, "pt"),
               axis.text.x = element_blank(),
               axis.text.y = element_blank(),
+              axis.line.x = element_line(linewidth = 3, colour = "grey30"),
               panel.grid.major = element_blank(),
               panel.grid.minor = element_blank(),
-              plot.title = element_textbox(size = 15, hjust = 0.5)
+              plot.title = element_textbox(size = 20, hjust = 0.5)
         ) +
         labs(title =d$sub_text[1],y = "", x = "")
     })
     ) %>%
     pull(impact_plot)
   
+  excess_mort <- impacts_output %>%
+    filter(grp == "System total", report_date == max(report_date), impact %in% c("om6_impact", "om6_impact_cf")) %>%
+    select(impact, value) %>%
+    pivot_wider(names_from = impact) %>%
+    mutate(diff = round(om6_impact) - round(om6_impact_cf)) %>%
+    pull(diff)
+    
+  excess_los <- impacts_output %>%
+    filter(grp == "System total", report_date == max(report_date), impact %in% c("om4_impact", "om4_impact_cf")) %>%
+    select(impact, value) %>%
+    pivot_wider(names_from = impact) %>%
+    mutate(diff = round(om4_impact) - round(om4_impact_cf)) %>%
+    pull(diff) %>%
+    `*`(7)
   
+  output$mort_subtext <- renderUI(
+    HTML(
+      glue::glue("<p><strong>Due to delays for their admission</strong>, we estimate there will be <strong>{excess_mort} avoidable deaths</strong> in the cohort of emergency Medical admissions from the <strong>last 7 days</strong>.</p>"
+    ))
+    )
   
+  output$los_subtext <- renderUI(
+    HTML(
+      glue::glue("<p>The <strong>{n_admits}</strong> Medical admits from the <strong>last 7 days</strong> will have an estimated <strong>excess {excess_los} days of length of stay</strong> combinded, <strong>due to their delays for admission</strong>. This is equivalent to <strong>{excess_los/7} excess Medical beds occupied per day.</p>"
+    ))
+    )
   
+  excess_resp <- impacts_output %>%
+    filter(report_date == max(report_date), impact %in% c("om1b_raw")) %>%
+    pull(emph_text)
+  
+  n_resp <- impacts_output %>%
+    filter(report_date == max(report_date), impact %in% c("om1b_n_exposure")) %>%
+    pull(emph_text)
+  
+  resp_target <- impacts_output %>%
+    filter(report_date == max(report_date), impact %in% c("om1b_n_exposure")) %>%
+    pull(target)
+  
+  output$resp_subtext <- renderUI(
+    HTML(
+      glue::glue("<p>The <strong>{n_resp}</strong> Catergory 2 ambulance responses over the  <strong>last 7 days</strong> had an <strong>excess {excess_resp} hours response time</strong> combinded, <strong>due to the medical DTA queue</strong>. The impact of this excess on meeting the <strong>national target (dashed-line)</strong> that <strong>90% of responses are within {resp_target} minutes</strong> can be seen in the chart."
+    ))
+    )
+  
+  excess_handover <- impacts_output %>%
+    filter(grp == "System total", report_date == max(report_date), impact %in% c("om2_raw")) %>%
+    pull(emph_text)
+  
+  n_handover <- impacts_output %>%
+    filter(grp == "System total", report_date == max(report_date), impact %in% c("om2_n_exposure")) %>%
+    pull(emph_text)
+  
+  n_amb <- excess_handover  %>%
+    str_remove_all(",") %>%
+    as.numeric() %>%
+    `/`(168) %>%
+    round()
+  
+  handover_target <- impacts_output %>%
+    filter(grp == "System total", report_date == max(report_date), impact %in% c("om2_n_exposure")) %>%
+    pull(target)
+  
+  output$handover_subtext <- renderUI(
+    HTML(
+      glue::glue("<p>The <strong>{n_handover}</strong> ambulance handovers over the  <strong>last 7 days</strong> had an <strong>excess {excess_handover} hours handover time</strong> combinded, <strong>due to the medical DTA queue</strong>. This excess delay is <strong>equivalent to {n_amb} ambulances being out of service througout the last 7 days</strong>. The impact of this excess on meeting the <strong>national target (dashed-line)</strong> that <strong>90% of handovers are within {handover_target} minutes</strong> can be seen in the chart."
+    ))
+    )
   
   
   

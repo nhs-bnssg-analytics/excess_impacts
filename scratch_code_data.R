@@ -2,9 +2,6 @@ require(tidyverse)
 require(RODBC)
 require(lubridate)
 library(tidymodels)
-library(patchwork)
-library(ggtext)
-library(marquee)
 
 # upstream data
 con_string <- "driver={SQL Server};\n  server=Xsw-00-ash01;\n  trusted_connection=true"
@@ -903,21 +900,25 @@ AND
     mutate(trt_time_cf = trt_time - diff) %>%
     bind_rows(mutate(., site = "System total")) %>%
     summarise(across(c(trt_time, trt_time_cf), \(x) mean(x < 4*60, na.rm = TRUE)),
-              diff = sum(diff, na.rm = TRUE), .by = site) %>%
+              diff = sum(diff, na.rm = TRUE),
+              om3_n_exposure = n(),.by = site) %>%
     rename(grp = site, om3_impact= trt_time, om3_impact_cf = trt_time_cf, om3_raw = diff) %>%
     pivot_longer(-grp, names_to = "impact") %>%
     mutate(target = 0.78,
            label = case_when(
               impact %in% c("om3_impact", "om3_impact_cf") ~ "4-hour seen for treatment performance",
-              impact %in% c("om3_raw") ~ "Hours additional waiting to be seen for treatment"
+              impact %in% c("om3_raw") ~ "Hours additional waiting to be seen for treatment",
+              impact %in% c("om3_n_exposure") ~ "Number ED attends"
              ),
            emph_text = case_when(
               impact %in% c("om3_impact", "om3_impact_cf") ~ percent(value, accuracy = 0.1),
-              impact %in% c("om3_raw") ~ number(round(value), big.mark = ",")
+              impact %in% c("om3_raw") ~ number(round(value), big.mark = ","),
+              impact %in% c("om3_n_exposure") ~ number(round(value), big.mark = ",")
              ),
            sub_text = case_when(
               impact %in% c("om3_impact", "om3_impact_cf") ~ "4-hour performance",
-              impact %in% c("om3_raw") ~ "Time to be seen, hours"
+              impact %in% c("om3_raw") ~ "Time to be seen, hours",
+              impact %in% c("om3_n_exposure") ~ label
              )
            )
 
@@ -960,21 +961,25 @@ AND
     bind_rows(mutate(., site = "System total")) %>%
     summarise(across(c(handover_time, handover_time_cf), \(x) quantile(x, .9, na.rm = TRUE)),
               diff = sum(diff, na.rm = TRUE),
+              om2_n_exposure = n(),
               .by = site) %>%
     rename(grp = site, om2_impact= handover_time, om2_impact_cf = handover_time_cf, om2_raw = diff) %>%
     pivot_longer(-grp, names_to = "impact") %>%
     mutate(target = 30,
            label = case_when(
              impact %in% c("om2_impact", "om2_impact_cf") ~ "90th percentile ambulance handover time",
-             impact %in% c("om2_raw") ~ "Hours additional waiting for ambulance handover"
+             impact %in% c("om2_raw") ~ "Hours additional waiting for ambulance handover",
+             impact %in% c("om2_n_exposure") ~ "Number of ambulance handovers"
            ),
            emph_text = case_when(
              impact %in% c("om2_impact", "om2_impact_cf") ~ str_c(round(value)," minutes"),
-             impact %in% c("om2_raw") ~ number(round(value/60), big.mark = ",")
+             impact %in% c("om2_raw") ~ number(round(value/60), big.mark = ","),
+             impact %in% c("om2_n_exposure") ~ number(round(value), big.mark = ",")
            ),
            sub_text = case_when(
              impact %in% c("om2_impact", "om2_impact_cf") ~ "Ambulance handover time (90<sup>th</sup> percentile)",
-             impact %in% c("om2_raw") ~ "Hours waited for ambulance handover"
+             impact %in% c("om2_raw") ~ "Hours waited for ambulance handover",
+             impact %in% c("om2_n_exposure") ~ "Number of ambulance handovers"
            )
     )
   
@@ -1027,21 +1032,25 @@ AND
     mutate(response_cf = pmax(0, response - diff)) %>%
     summarise(across(c(response, response_cf), \(x) quantile(x, .9, na.rm = TRUE)),
               diff = sum(diff, na.rm = TRUE),
+              om1_n_exposure = n(),
               .by = call_category) %>%
     rename(grp = call_category, om1_impact= response, om1_impact_cf = response_cf, om1_raw = diff) %>%
     pivot_longer(-grp, names_to = "impact") %>%
     mutate(
       label = case_when(
         impact %in% c("om1_impact", "om1_impact_cf") ~ "90th percentile ambulance response",
-        impact %in% c("om1_raw") ~ "Hours additional waiting for ambulance response"
+        impact %in% c("om1_raw") ~ "Hours additional waiting for ambulance response",
+        impact %in% c("om1_n_exposure") ~ "Number of ambulance responses"
       ),
       emph_text = case_when(
         impact %in% c("om1_impact", "om1_impact_cf") ~ str_c(round(value)," minutes"),
-        impact %in% c("om1_raw") ~ number(round(value/60), big.mark = ",")
+        impact %in% c("om1_raw") ~ number(round(value/60), big.mark = ","),
+        impact %in% c("om1_n_exposure") ~ number(round(value), big.mark = ",")
       ),
       sub_text = case_when(
-        impact %in% c("om1_impact", "om1_impact_cf") ~ "Ambulance response, (90<sup>th</sup> percentile)",
-        impact %in% c("om1_raw") ~ "Hours waited for ambulance response"
+        impact %in% c("om1_impact", "om1_impact_cf") ~ "Ambulance response (90<sup>th</sup> percentile)",
+        impact %in% c("om1_raw") ~ "Hours waited for ambulance response",
+        impact %in% c("om1_n_exposure") ~ "Number of ambulance responses"
       ),
     impact = case_when(
       grp == "cat1" ~ str_replace(impact, "om1", "om1a"),
