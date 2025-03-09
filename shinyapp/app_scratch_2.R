@@ -124,6 +124,91 @@ ui <- page_fluid(
         margin-bottom: 0 !important;
         margin-top: 0 !important;
       }
+      
+       /* Scenario labels styles */
+      .scenario-header {
+        display: flex;
+        align-items: center;
+        padding: 10px 0;
+      }
+      
+      .scenario-label {
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        font-weight: 500;
+      }
+      
+      .scenario-indicator {
+        width: 16px;
+        height: 16px;
+        margin-right: 8px;
+        border-radius: 3px;
+      }
+      
+      .scenario-arrow {
+        font-size: 24px;
+        margin: 0 10px;
+        color: #555;
+      }
+      
+      .scenario-bracket {
+        font-size: 40px;
+        font-weight: 300;
+        margin: 0 5px;
+        color: #555;
+      }
+       /* Section headers */
+  .section-header {
+    font-size: 14px;
+    font-weight: 600;
+    padding: 5px 0;
+    margin-bottom: 5px;
+    border-bottom: 2px solid;
+  }
+  
+  .direct-impact {
+    color: #2980b9;
+    border-color: #2980b9;
+  }
+  
+  .indirect-impact {
+    color: #8e44ad;
+    border-color: #8e44ad;
+  }
+  
+  /* Connection indicators */
+  .connection-line {
+    position: absolute;
+    width: 40px;
+    height: 2px;
+    background-color: #ddd;
+    right: -40px;
+    top: 25px;
+    z-index: 100;
+  }
+  
+  .connection-dot {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    right: -2px;
+    top: 22px;
+    z-index: 100;
+  }
+  
+  /* Impact group background shading */
+  .impact-group-direct {
+    background-color: rgba(41, 128, 185, 0.05);
+    border-left: 3px solid #2980b9;
+  }
+  
+  .impact-group-indirect {
+    background-color: rgba(142, 68, 173, 0.05);
+    border-left: 3px solid #8e44ad;
+  }
+      
   ")
   ),
 
@@ -141,10 +226,10 @@ ui <- page_fluid(
     uiOutput("header")
   ),
 
-  # Two horizontally split cards
+  # Scenario descriptions - centered VS version
   layout_columns(
-    height = "10%",
-    col_widths = c(4, 2, 2, 4),
+    height = "6%",
+    col_widths = c(12),
     gap = "0px",
     style = "overflow: hidden !important;",
     card(
@@ -153,31 +238,20 @@ ui <- page_fluid(
       class = "no-border-no-pad",
       style = "overflow: hidden !important;",
       div(
-        style = "display: flex; justify-content: flex-end; align-items: top; height: 100%; padding-right: 10px; overflow: hidden;",
-        # HTML("<span style='text-align:center; font-size: 12pt;'>Estimated impacts based on..")
-      )
-    ), 
-    # Left card with right-justified text
-    card(
-      full_screen = FALSE,
-      height = "100%",
-      class = "no-border-no-pad",
-      style = "overflow: hidden !important;",
-      div(
-        style = "display: flex; justify-content: flex-end; align-items: top; height: 100%; padding-right: 10px; overflow: hidden;",
-        HTML("<p style=';color:#E4604A;'>..what actually happened: </p>")
-      )
-    ),
-    
-    # Right card with left-justified text
-    card(
-      full_screen = FALSE,
-      height = "100%",
-      class = "no-border-no-pad",
-      style = "overflow: hidden !important;",
-      div(
-        style = "display: flex; justify-content: flex-start; align-items: top; height: 100%; padding-left: 10px; overflow: hidden;",
-        HTML("<p style='color: #A3A78F;' class='scale-text'>..scenario where medical D2A waits & the medical D2A queue where kept under 1 hour and 25% of the bedded capacity of the ED respectively:</p>")
+        class = "scenario-header",
+        HTML('
+        <div style="display: grid; grid-template-columns: 1fr auto 1fr; width: 100%; padding: 0 20px; align-items: center;">
+          <div style="display: flex; align-items: center; justify-content: flex-end; padding-right: 20px;">
+            <span class="scenario-indicator" style="background-color: #E4604A;"></span>
+            <span style="font-weight: 500; color: #333;"><strong>Scenario 1</strong>: What actually happened</span>
+          </div>
+          <div style="margin: 0 15px; font-size: 24px; color: #666; font-weight: bold;">VS</div>
+          <div style="display: flex; align-items: center; padding-left: 20px;">
+            <span class="scenario-indicator" style="background-color: #A3A78F;"></span>
+            <span style="font-weight: 500; color: #333;"><strong>Scenario 2</strong>: If medical DTA waits & queue were kept under 1 hour and 25% of ED capacity</span>
+          </div>
+        </div>
+      ')
       )
     )
   ),
