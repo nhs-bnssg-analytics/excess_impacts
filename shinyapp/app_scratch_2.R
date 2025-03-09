@@ -158,56 +158,6 @@ ui <- page_fluid(
         margin: 0 5px;
         color: #555;
       }
-       /* Section headers */
-  .section-header {
-    font-size: 14px;
-    font-weight: 600;
-    padding: 5px 0;
-    margin-bottom: 5px;
-    border-bottom: 2px solid;
-  }
-  
-  .direct-impact {
-    color: #2980b9;
-    border-color: #2980b9;
-  }
-  
-  .indirect-impact {
-    color: #8e44ad;
-    border-color: #8e44ad;
-  }
-  
-  /* Connection indicators */
-  .connection-line {
-    position: absolute;
-    width: 40px;
-    height: 2px;
-    background-color: #ddd;
-    right: -40px;
-    top: 25px;
-    z-index: 100;
-  }
-  
-  .connection-dot {
-    position: absolute;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    right: -2px;
-    top: 22px;
-    z-index: 100;
-  }
-  
-  /* Impact group background shading */
-  .impact-group-direct {
-    background-color: rgba(41, 128, 185, 0.05);
-    border-left: 3px solid #2980b9;
-  }
-  
-  .impact-group-indirect {
-    background-color: rgba(142, 68, 173, 0.05);
-    border-left: 3px solid #8e44ad;
-  }
       
   ")
   ),
@@ -248,7 +198,7 @@ ui <- page_fluid(
           <div style="margin: 0 15px; font-size: 24px; color: #666; font-weight: bold;">VS</div>
           <div style="display: flex; align-items: center; padding-left: 20px;">
             <span class="scenario-indicator" style="background-color: #A3A78F;"></span>
-            <span style="font-weight: 500; color: #333;"><strong>Scenario 2</strong>: If medical DTA waits & queue were kept under 1 hour and 25% of ED capacity</span>
+            <span style="font-weight: 500; color: #333;"><strong>Scenario 2</strong>: If medical DTA waits & queue were kept under 1 hour and 25% of ED bed capacity</span>
           </div>
         </div>
       ')
@@ -613,9 +563,15 @@ server <- function(input, output) {
     # Use req() to ensure reactives are ready
     req(n_admits(), dta_time())
     
+    site_text <- switch(input$grp_select,
+                        "System total" = "our emergency department",
+                        "BRI" = "the emergency department at BRI",
+                        "NBT" = "the emergency department at NBT",
+                        "WGH" = "the emergency department at WGH")
+    
     h5(
       HTML(glue::glue(
-        "<p><span class='secondary-text'>Over the last <b>7 days</b>, our emergency departments saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
+        "<p><span class='secondary-text'>Over the last <b>7 days</b>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
       ))
     )
   })
