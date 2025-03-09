@@ -92,12 +92,12 @@ ui <- page_fluid(
         z-index: 1000;
       }
       .primary-text {
-        font-size: 30pt;
+        font-size: 25pt;
         margin-bottom: 1rem;
       }
       
       .secondary-text {
-        font-size: 15pt;
+        font-size: 12pt;
         margin-bottom: 1rem;
       }
       /* Fix column wrap layouts */
@@ -129,12 +129,12 @@ ui <- page_fluid(
 
   style = "height: 100vh; gap: 0rem; overflow: hidden !important; display: flex; flex-direction: column;",
   
-  layout_columns(gap = "0px", col_widths = c(7, 2, 3),style = "width: 27%;", uiOutput("report_date"), HTML("<div>Run report for:</div>"), selectInput("grp_select", label = NULL, choices = c("System total", "BRI", "NBT", "WGH"))),
+  layout_columns(height = "2%",gap = "0px", col_widths = c(7, 2, 3),style = "width: 40%;", uiOutput("report_date"), HTML("<div>Run report for:</div>"), selectInput("grp_select", label = NULL, choices = c("System total", "BRI", "NBT", "WGH"))),
   
   # Top heading paragraph
   card(
     full_screen = FALSE,
-    height = "10%",
+    height = "6%",
     class = "no-border-no-pad",
     style = "overflow: hidden !important;",
     gap = "0px",
@@ -154,7 +154,7 @@ ui <- page_fluid(
       style = "overflow: hidden !important;",
       div(
         style = "display: flex; justify-content: flex-end; align-items: top; height: 100%; padding-right: 10px; overflow: hidden;",
-        HTML("<span style='text-align:center'><h4>Estimated impacts based on..</h4>")
+        # HTML("<span style='text-align:center; font-size: 12pt;'>Estimated impacts based on..")
       )
     ), 
     # Left card with right-justified text
@@ -165,7 +165,7 @@ ui <- page_fluid(
       style = "overflow: hidden !important;",
       div(
         style = "display: flex; justify-content: flex-end; align-items: top; height: 100%; padding-right: 10px; overflow: hidden;",
-        HTML("<h5 style=';color:#E4604A;'>..what actually happened: </h5>")
+        HTML("<p style=';color:#E4604A;'>..what actually happened: </p>")
       )
     ),
     
@@ -177,13 +177,13 @@ ui <- page_fluid(
       style = "overflow: hidden !important;",
       div(
         style = "display: flex; justify-content: flex-start; align-items: top; height: 100%; padding-left: 10px; overflow: hidden;",
-        HTML("<h5 style='color: #A3A78F;' class='scale-text'>..scenario where medical D2A waits & the medical D2A queue where kept under 1 hour and 25% of the bedded capacity of the ED respectively:</h5>")
+        HTML("<p style='color: #A3A78F;' class='scale-text'>..scenario where medical D2A waits & the medical D2A queue where kept under 1 hour and 25% of the bedded capacity of the ED respectively:</p>")
       )
     )
   ),
   # Main layout - 3 columns
   layout_columns(
-    height = "72%",
+    height = "80%",
     col_widths = c(4, 4, 4),
     gap = "0px",
     # style = "overflow: hidden !important;",
@@ -282,7 +282,7 @@ ui <- page_fluid(
     layout_column_wrap(
       width = 1,
       height = "100%",
-      class = "no-border-no-pad-text-center",
+      # class = "no-border-no-pad-text-center",
       # style = "padding: 0;",
       
       # Right card 1
@@ -321,6 +321,7 @@ ui <- page_fluid(
           style = "padding: 10px;",
           # Reduce internal padding but keep some for readability
           uiOutput("resp_subtext")
+          
         )
       ),
       
@@ -408,20 +409,23 @@ server <- function(input, output) {
   })
   
   excess_resp <- reactive({
-    filtered_data() %>%
-      filter(report_date == max_report_date, impact %in% c("om1b_raw")) %>%
+    impacts_output_raw %>%
+      filter(report_date == max_report_date, 
+             impact %in% c("om1b_raw")) %>%
       pull(emph_text)
   })
   
   n_resp <- reactive({
-    filtered_data() %>%
-      filter(report_date == max_report_date, impact %in% c("om1b_n_exposure")) %>%
+    impacts_output_raw %>%
+      filter(report_date == max_report_date, 
+             impact %in% c("om1b_n_exposure")) %>%
       pull(emph_text)
   })
   
   resp_target <- reactive({
-    filtered_data() %>%
-      filter(report_date == max_report_date, impact %in% c("om1b_n_exposure")) %>%
+    impacts_output_raw %>%
+      filter(report_date == max_report_date, 
+             impact %in% c("om1b_n_exposure")) %>%
       pull(target)
   })
   
@@ -510,7 +514,7 @@ server <- function(input, output) {
       geom_hline(aes(yintercept = target), linetype = 2, size = 2, colour = "grey30") +
       geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")) +
       theme_void() +
-      scale_y_continuous(expand = expansion(mult = c(0, 0.25))) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.4))) +
       scale_fill_manual(values = c("#E4604A", "#A3A78F")) +
       theme(legend.position = "off",
             plot.margin = margin(0, 0, 0, 0, "pt"),
@@ -537,7 +541,7 @@ server <- function(input, output) {
     
     h5(
       HTML(glue::glue(
-        "<p>Over the last <b>7 days</b>, our emergency departments saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance."
+        "<p><span class='secondary-text'>Over the last <b>7 days</b>, our emergency departments saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
       ))
     )
   })
@@ -562,7 +566,6 @@ server <- function(input, output) {
   
   output$resp_subtext <- renderUI({
     req(n_resp(), excess_resp(), resp_target())
-    
     HTML(
       glue::glue("<p>The <strong>{n_resp()}</strong> Catergory 2 ambulance responses over the <strong>last 7 days</strong> had an <strong>excess {excess_resp()} hours response time</strong> combinded, <strong>due to the medical DTA queue</strong>. The impact of this excess on meeting the <strong>national target (dashed-line)</strong> that <strong>90% of responses are within {resp_target()} minutes</strong> can be seen in the chart."
       )
