@@ -746,10 +746,18 @@ Conveyed_To_Ward_Type = 'A&E' AND
       mutate(n_dta_norm = n_dta/total) %>%
       ungroup()
     
+
     dat_top_stats <- dat_ecds %>%
       left_join(dat_spec) %>%
       filter(spec == "medical", !is.na(dta_dt)) %>%
-      summarise(n_dta = n(), dta_time = sum(dta_time), .by = Site_Name)
+      bind_rows(mutate(., Site_Name = "System total")) %>%
+      summarise(n_dta = n(), mean_dta_time = mean(dta_time), dta_time = sum(dta_time), .by = Site_Name) %>%
+      left_join({
+    dat_dtas %>%
+      bind_rows(mutate(., site = "System total")) %>%
+      summarise(n_dta_norm = mean(n_dta_norm), .by = site) %>%
+      rename(Site_Name = site)
+        })
     
     list(dta_df = dat_dtas, dta_top_stats = dat_top_stats)
   })
@@ -1110,15 +1118,22 @@ AND
   
   dta_top_stats <- dta_top_stats %>%
     rename(grp = Site_Name) %>%
-    bind_rows(mutate(., grp = "System total")) %>%
-    summarise(across(everything(), sum), .by = grp) %>%
+    # bind_rows(mutate(., grp = "System total")) %>%
+    # summarise(across(everything(), sum), .by = grp) %>%
     pivot_longer(-grp, names_to = "impact") %>%
     mutate(label = case_when(
       impact == "n_dta" ~ "emergency medical admissions",
       impact == "dta_time" ~ "hours waited for admission",
+      impact == "mean_dta_time" ~ "average hours waited for admission",
+      impact == "n_dta_norm" ~ "average number in DTA queue as proportion of ED capacity"
     ),
     target = NA_real_,
-    emph_text =  as.character(round(value/(60*24))),
+    emph_text =  case_when(
+      impact == "n_dta" ~ as.character(value),
+      impact == "dta_time" ~ as.character(round(value/(60*24))),
+      impact == "n_dta_norm" ~ scales::percent(value, accuracy = 1),
+      impact == "mean_dta_time" ~ as.character(round(value/(60)))
+    ),
     sub_text = "days")
   
   impacts_output <- bind_rows(list(
@@ -1132,7 +1147,6 @@ AND
   
   impacts_output
 }
-
 
 out <- get_impact_data(report_start = report_start,
                        report_end = report_end)

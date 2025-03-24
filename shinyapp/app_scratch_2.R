@@ -164,7 +164,37 @@ ui <- page_fluid(
 
   style = "height: 100vh; gap: 0rem; overflow: hidden !important; display: flex; flex-direction: column;",
   
-  layout_columns(height = "2%",gap = "0px", col_widths = c(7, 2, 3),style = "width: 40%;", uiOutput("report_date"), HTML("<div>Run report for:</div>"), selectInput("grp_select", label = NULL, choices = c("System total", "BRI", "NBT", "WGH"))),
+  # layout_columns(height = "2%",gap = "0px", col_widths = c(7, 2, 3),style = "width: 40%;", uiOutput("report_date"), HTML("<div>Run report for:</div>"), selectInput("grp_select", label = NULL, choices = c("System total", "BRI", "NBT", "WGH"))),
+  layout_columns(
+    height = "auto",  # Changed from fixed height to auto
+    gap = "0px", 
+    col_widths = c(7, 2, 3),
+    style = "width: 100%; background-color: #f8f9fa; border-bottom: 1px solid #e9ecef; padding: 8px 15px; display: flex; align-items: center;",
+    
+    div(
+      style = "display: flex; align-items: center; height: 100%;",
+      uiOutput("report_date")
+    ),
+    
+    div(
+      style = "display: flex; align-items: center; justify-content: flex-end; height: 100%;",
+      HTML("<div style='margin-right: 10px; font-weight: 500;'><strong>Run report for:</strong></div>")
+    ),
+    
+    div(
+      style = "display: flex; align-items: center; height: 100%;",
+      div(
+        style = "width: 100%;",
+        selectInput(
+          "grp_select", 
+          label = NULL, 
+          choices = c("System total", "BRI", "NBT", "WGH"),
+          width = "100%",
+          selectize = TRUE
+        )
+      )
+    )
+  ),
   
   # Top heading paragraph
   card(
@@ -189,19 +219,7 @@ ui <- page_fluid(
       style = "overflow: hidden !important;",
       div(
         class = "scenario-header",
-        HTML('
-        <div style="display: grid; grid-template-columns: 1fr auto 1fr; width: 100%; padding: 0 20px; align-items: center;">
-          <div style="display: flex; align-items: center; justify-content: flex-end; padding-right: 20px;">
-            <span class="scenario-indicator" style="background-color: #E4604A;"></span>
-            <span style="font-weight: 500; color: #333;"><strong>Scenario 1</strong>: What actually happened</span>
-          </div>
-          <div style="margin: 0 15px; font-size: 24px; color: #666; font-weight: bold;">VS</div>
-          <div style="display: flex; align-items: center; padding-left: 20px;">
-            <span class="scenario-indicator" style="background-color: #A3A78F;"></span>
-            <span style="font-weight: 500; color: #333;"><strong>Scenario 2</strong>: If medical DTA waits & queue were kept under 1 hour and 25% of ED bed capacity</span>
-          </div>
-        </div>
-      ')
+        uiOutput("scenario_text")
       )
     )
   ),
@@ -226,9 +244,8 @@ ui <- page_fluid(
         class = "no-border-no-pad-text-center",
         height = "48%",
         card_body(
-          HTML("<h4>Direct Impacts</h4>
-               <p>Delays to admission have direct impacts on those patients waiting.
-               We have found associations with higher 30-day mortality rates and in-hospital length of stay.</p>
+          HTML("<h4>*Direct Impacts</h4>
+               <p>When patients experience delays in hospital admission, there are direct negative consequences on their health outcomes. Our analysis has revealed a clear association between these admission delays and increased 30-day mortality rates, as well as prolonged in-hospital lengths of stay.</p>
                <ul>"
                )
         )
@@ -240,10 +257,9 @@ ui <- page_fluid(
         class = "no-border-no-pad-text-center",
         height = "48%",
         card_body(
-          HTML("<h4>Indirect Impacts</h4>
+          HTML("<h4>**Indirect Impacts</h4>
                <p>
-               The queue for admission has indirect impacts on other patients arriving at the ED.
-               We have found associations with higher ambulance handover and response times.
+               The medical Decision to Admit (DTA) queue has wider impact, affecting not only patients waiting for admission, but also creating knock-on effects for other patients arriving at the Emergency Department. Specifically, our analysis demonstrates that a larger DTA queue is associated with a measurable increase in both ambulance handover times and emergency response times, indicating a bottleneck in the patient flow.
                </p>")
         )
       )
@@ -382,7 +398,13 @@ server <- function(input, output) {
                         "cat2" = "(Category 2)",
                         "cat3" = "(Category 3)"
     )) %>%
-    mutate(value_label = gen_html_text(emph_text))
+    mutate(sub_text = case_when(
+      str_detect(impact, "om6_impact") ~ str_c(sub_text, "*"),
+      str_detect(impact, "om4_impact") ~ str_c(sub_text, "*"),
+      str_detect(impact, "om2_impact") ~ str_c(sub_text, "**"),
+      str_detect(impact, "om1[abc]_impact") ~ str_c(sub_text, "**")
+      )) %>%
+    mutate(value_label = gen_html_text(emph_text)) 
   
   # Filtered data based on input selection
   impacts_output <- reactive({
@@ -413,6 +435,34 @@ server <- function(input, output) {
       pull(value)
   })
   
+  # Make sure these reactive expressions are handling edge cases properly
+  dta_time_avg <- reactive({
+    result <- filtered_data() %>%
+      filter(impact == 'mean_dta_time', report_date == max_report_date)
+    
+    # Check if we got any rows back
+    if (nrow(result) == 0) {
+      cat("dta_time_avg: No data found\n")
+      return(NA)
+    }
+    
+    return(result %>% pull(emph_text))
+  })
+  
+  n_dta_norm <- reactive({
+    result <- filtered_data() %>%
+      filter(impact == 'n_dta_norm', report_date == max_report_date)
+    
+    # Check if we got any rows back
+    if (nrow(result) == 0) {
+      cat("n_dta_norm: No data found\n")
+      return(NA)
+    }
+    
+    return(result %>% pull(emph_text))
+  })
+  
+
   excess_mort <- reactive({
     filtered_data() %>%
       filter(report_date == max_report_date, impact %in% c("om6_impact", "om6_impact_cf")) %>%
@@ -544,18 +594,19 @@ server <- function(input, output) {
             plot.margin = margin(0, 0, 0, 0, "pt"),
             axis.text.x = element_blank(),
             axis.text.y = element_blank(),
-            axis.line.x = element_line(linewidth = 3, colour = "grey30"),
+            axis.line.x = element_line(linewidth = 2.5, colour = "grey30"),
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
-            plot.title = element_textbox(size = 20, hjust = 0.5)
+            plot.title = element_textbox(size = 20, hjust = 0.5),
+            plot.caption = element_textbox(size = 20, hjust = 0.5, margin = margin(t = 10), face = "bold")
       ) +
-      labs(title = data$sub_text[1], y = "", x = "")
+      labs(caption = data$sub_text[1], y = "", x = "")
   }
   
   # Render UI outputs with proper isolation 
   output$report_date <- renderUI({
     HTML(glue::glue(
-      "Report based on data from {format(max_report_date, '%d %B %Y')}"
+      "<strong>Report based on data from {format(max_report_date, '%d %B %Y')}</strong>"
     ))
   })
   
@@ -575,6 +626,29 @@ server <- function(input, output) {
       ))
     )
   })
+  
+  output$scenario_text <- renderUI({
+    # Use req() to ensure reactive values are ready before rendering
+    req(dta_time_avg(), n_dta_norm())
+    
+    dta_time <- dta_time_avg()
+    dta_queue <- n_dta_norm()
+    
+    HTML(glue::glue('
+    <div style="display: grid; grid-template-columns: 1fr auto 1fr; width: 100%; padding: 0 20px; align-items: center;">
+      <div style="display: flex; align-items: center; justify-content: flex-end; padding-right: 20px;">
+        <span class="scenario-indicator" style="background-color: #E4604A;"></span>
+        <span style="font-weight: 500; color: #333;"><strong>Actual</strong>: where admission waits were <strong>{dta_time} hours</strong> & the DTA queue was <strong>{dta_queue}</strong> of the bed capacity, on average</span>
+      </div>
+      <div style="margin: 0 15px; font-size: 24px; color: #666; font-weight: bold;">VS</div>
+      <div style="display: flex; align-items: center; padding-left: 20px;">
+        <span class="scenario-indicator" style="background-color: #A3A78F;"></span>
+        <span style="font-weight: 500; color: #333;"><strong>Hypothetical</strong>: If medical waits for admission & Decision to Admit (DTA) queue were kept <strong>under 1 hour</strong> and <strong>25%</strong> of ED bed capacity</span>
+      </div>
+    </div>
+  '))
+  })
+  
   
   output$mort_subtext <- renderUI({
     req(excess_mort(), n_admits())
@@ -626,6 +700,12 @@ server <- function(input, output) {
   
   output$chart4 <- renderPlot({
     create_plot(handover_chart_data())
+  })
+  
+  # Add this to your server function
+  observeEvent(input$grp_select, {
+    cat("dta_time_avg:", dta_time_avg(), "\n")
+    cat("n_dta_norm:", n_dta_norm(), "\n")
   })
   
 }
