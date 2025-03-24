@@ -164,11 +164,10 @@ ui <- page_fluid(
 
   style = "height: 100vh; gap: 0rem; overflow: hidden !important; display: flex; flex-direction: column;",
   
-  # layout_columns(height = "2%",gap = "0px", col_widths = c(7, 2, 3),style = "width: 40%;", uiOutput("report_date"), HTML("<div>Run report for:</div>"), selectInput("grp_select", label = NULL, choices = c("System total", "BRI", "NBT", "WGH"))),
   layout_columns(
-    height = "auto",  # Changed from fixed height to auto
+    height = "auto",
     gap = "0px", 
-    col_widths = c(7, 2, 3),
+    col_widths = c(2, 1, 4, 1, 4),  # Adjusted for better balance
     style = "width: 100%; background-color: #f8f9fa; border-bottom: 1px solid #e9ecef; padding: 8px 15px; display: flex; align-items: center;",
     
     div(
@@ -184,11 +183,30 @@ ui <- page_fluid(
     div(
       style = "display: flex; align-items: center; height: 100%;",
       div(
-        style = "width: 100%;",
+        style = "width: 80%;",
         selectInput(
           "grp_select", 
           label = NULL, 
-          choices = c("System total", "BRI", "NBT", "WGH"),
+          choices = c("BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)", "BRI", "NBT", "WGH"),
+          width = "100%",
+          selectize = TRUE
+        )
+      )
+    ),
+    
+    div(
+      style = "display: flex; align-items: center; justify-content: flex-end; height: 100%;",
+      HTML("<div style='margin-right: 10px; font-weight: 500;'><strong>Under scenario:</strong></div>")
+    ),
+    
+    div(
+      style = "display: flex; align-items: center; height: 100%;",
+      div(
+        style = "width: 80%;",
+        selectInput(
+          "scenario_select", 
+          label = NULL, 
+          choices = c("Medical waits for admission: < 1 hour. Medical DTA Queue < 25% of ED bed capacity", "Medical waits for admission: 0 hour. Medical DTA Queue 0% of ED bed capacity"),
           width = "100%",
           selectize = TRUE
         )
@@ -231,39 +249,65 @@ ui <- page_fluid(
     # style = "overflow: hidden !important;",
     class = "layout-column-no-gap",
     
-    # Left column - 2 cards with HTML text
+    # Left column 
     layout_column_wrap(
       width = 1,
       height = "100%",
-      class = "no-border-no-pad-text-center",
+      # class = "no-border-no-pad-text-center",
       # style = "padding: 0;",
       
-      # Top left card
+      # Left card 1
       card(
-        full_screen = FALSE,
         class = "no-border-no-pad-text-center",
-        height = "48%",
+        height = "23%",
+        style = "margin-bottom: 8px;",
+        # Small gap between inner cards
         card_body(
-          HTML("<h4>*Direct Impacts</h4>
-               <p>When patients experience delays in hospital admission, there are direct negative consequences on their health outcomes. Our analysis has revealed a clear association between these admission delays and increased 30-day mortality rates, as well as prolonged in-hospital lengths of stay.</p>
-               <ul>"
-               )
+          style = "padding: 10px;",
+          # Reduce internal padding but keep some for readability
+          uiOutput("mort_subtext")
         )
       ),
       
-      # Bottom left card
+      # Left card 2
       card(
-        full_screen = FALSE,
         class = "no-border-no-pad-text-center",
-        height = "48%",
+        height = "23%",
+        style = "margin-bottom: 8px;",
+        # Small gap between inner cards
         card_body(
-          HTML("<h4>**Indirect Impacts</h4>
-               <p>
-               The medical Decision to Admit (DTA) queue has wider impact, affecting not only patients waiting for admission, but also creating knock-on effects for other patients arriving at the Emergency Department. Specifically, our analysis demonstrates that a larger DTA queue is associated with a measurable increase in both ambulance handover times and emergency response times, indicating a bottleneck in the patient flow.
-               </p>")
+          style = "padding: 10px;",
+          # Reduce internal padding but keep some for readability
+          uiOutput("los_subtext")
+        )
+      ),
+      
+      # Left card 3
+      card(
+        class = "no-border-no-pad-text-center",
+        height = "23%",
+        style = "margin-bottom: 8px;",
+        # Small gap between inner cards
+        card_body(
+          style = "padding: 10px;",
+          # Reduce internal padding but keep some for readability
+          uiOutput("resp_subtext")
+          
+        )
+      ),
+      
+      # Left card 4
+      card(
+        class = "no-border-no-pad-text-center",
+        height = "23%",
+        card_body(
+          style = "padding: 10px;",
+          # Reduce internal padding but keep some for readability
+          uiOutput("handover_subtext")
         )
       )
-    ),
+    )
+    ,
     
     # Middle column - 4 stacked bar charts
     layout_column_wrap(
@@ -319,60 +363,36 @@ ui <- page_fluid(
     ),
     
     # Right column - 4 cards with HTML text
+    
     layout_column_wrap(
       width = 1,
       height = "100%",
-      # class = "no-border-no-pad-text-center",
+      class = "no-border-no-pad-text-center",
       # style = "padding: 0;",
       
-      # Right card 1
+      # Top left card
       card(
+        full_screen = FALSE,
         class = "no-border-no-pad-text-center",
-        height = "23%",
-        style = "margin-bottom: 8px;",
-        # Small gap between inner cards
+        height = "48%",
         card_body(
-          style = "padding: 10px;",
-          # Reduce internal padding but keep some for readability
-          uiOutput("mort_subtext")
+          HTML("<h4>*Direct Impacts</h4>
+               <p>When patients experience delays in hospital admission, there are direct negative consequences on their health outcomes. Our analysis has revealed a clear association between these admission delays and increased 30-day mortality rates, as well as prolonged in-hospital lengths of stay.</p>
+               <ul>"
+          )
         )
       ),
       
-      # Right card 2
+      # Bottom left card
       card(
+        full_screen = FALSE,
         class = "no-border-no-pad-text-center",
-        height = "23%",
-        style = "margin-bottom: 8px;",
-        # Small gap between inner cards
+        height = "48%",
         card_body(
-          style = "padding: 10px;",
-          # Reduce internal padding but keep some for readability
-          uiOutput("los_subtext")
-        )
-      ),
-      
-      # Right card 3
-      card(
-        class = "no-border-no-pad-text-center",
-        height = "23%",
-        style = "margin-bottom: 8px;",
-        # Small gap between inner cards
-        card_body(
-          style = "padding: 10px;",
-          # Reduce internal padding but keep some for readability
-          uiOutput("resp_subtext")
-          
-        )
-      ),
-      
-      # Right card 4
-      card(
-        class = "no-border-no-pad-text-center",
-        height = "23%",
-        card_body(
-          style = "padding: 10px;",
-          # Reduce internal padding but keep some for readability
-          uiOutput("handover_subtext")
+          HTML("<h4>**Indirect Impacts</h4>
+               <p>
+               The medical Decision to Admit (DTA) queue has wider impact, affecting not only patients waiting for admission, but also creating knock-on effects for other patients arriving at the Emergency Department. Specifically, our analysis demonstrates that a larger DTA queue is associated with a measurable increase in both ambulance handover times and emergency response times, indicating a bottleneck in the patient flow.
+               </p>")
         )
       )
     )
@@ -391,6 +411,7 @@ server <- function(input, output) {
   
   impacts_output_raw <- readRDS("../data/avoidable_impacts_output.RDS") %>%
     mutate(grp = recode(grp,
+                        "System total" = "BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)",
                         "WESTON GENERAL HOSPITAL" = "WGH", 
                         "SOUTHMEAD HOSPITAL" = "NBT", 
                         "BRISTOL ROYAL INFIRMARY" = "BRI", 
@@ -589,7 +610,7 @@ server <- function(input, output) {
       geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")) +
       theme_void() +
       scale_y_continuous(expand = expansion(mult = c(0, 0.4))) +
-      scale_fill_manual(values = c("#E4604A", "#A3A78F")) +
+      scale_fill_manual(values = c("#85BAFF", "#A3A78F")) +
       theme(legend.position = "off",
             plot.margin = margin(0, 0, 0, 0, "pt"),
             axis.text.x = element_blank(),
@@ -606,7 +627,7 @@ server <- function(input, output) {
   # Render UI outputs with proper isolation 
   output$report_date <- renderUI({
     HTML(glue::glue(
-      "<strong>Report based on data from {format(max_report_date, '%d %B %Y')}</strong>"
+      "<span><h4><strong>Excess Impacts</strong>: A what-if analysis</h4> Based on data from <strong> {format(max_report_date, '%d %B %Y')}</strong></span>"
     ))
   })
   
@@ -615,7 +636,7 @@ server <- function(input, output) {
     req(n_admits(), dta_time())
     
     site_text <- switch(input$grp_select,
-                        "System total" = "our emergency department",
+                        "BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)" = "our emergency department",
                         "BRI" = "the emergency department at BRI",
                         "NBT" = "the emergency department at NBT",
                         "WGH" = "the emergency department at WGH")
@@ -637,7 +658,7 @@ server <- function(input, output) {
     HTML(glue::glue('
     <div style="display: grid; grid-template-columns: 1fr auto 1fr; width: 100%; padding: 0 20px; align-items: center;">
       <div style="display: flex; align-items: center; justify-content: flex-end; padding-right: 20px;">
-        <span class="scenario-indicator" style="background-color: #E4604A;"></span>
+        <span class="scenario-indicator" style="background-color: #85BAFF;"></span>
         <span style="font-weight: 500; color: #333;"><strong>Actual</strong>: where admission waits were <strong>{dta_time} hours</strong> & the DTA queue was <strong>{dta_queue}</strong> of the bed capacity, on average</span>
       </div>
       <div style="margin: 0 15px; font-size: 24px; color: #666; font-weight: bold;">VS</div>
@@ -702,11 +723,6 @@ server <- function(input, output) {
     create_plot(handover_chart_data())
   })
   
-  # Add this to your server function
-  observeEvent(input$grp_select, {
-    cat("dta_time_avg:", dta_time_avg(), "\n")
-    cat("n_dta_norm:", n_dta_norm(), "\n")
-  })
   
 }
 
