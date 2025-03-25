@@ -3,10 +3,10 @@ library(shiny)
 library(bslib)
 library(ggtext)
 
-ui <- page_fluid(
+ui <- page_sidebar(
   tags$head(
     tags$style("
-    /* Override tooltip styles */
+   /* Override tooltip styles */
       .tooltip-inner {
         background-color: white !important;
         color: black !important;
@@ -96,10 +96,11 @@ ui <- page_fluid(
         margin-bottom: 1rem;
       }
       
-      .secondary-text {
-        font-size: 12pt;
-        margin-bottom: 1rem;
-      }
+.secondary-text {
+  font-size: 14px !important;
+  margin-bottom: 0.5rem !important;
+  line-height: 1.4 !important;
+}
       /* Fix column wrap layouts */
       .bslib-column-wrap {
         overflow: hidden !important;
@@ -125,12 +126,28 @@ ui <- page_fluid(
         margin-top: 0 !important;
       }
       
-       /* Scenario labels styles */
-      .scenario-header {
-        display: flex;
-        align-items: center;
-        padding: 10px 0;
-      }
+      /* Scenario labels container */
+.scenario-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  width: 100%;
+  padding: 0 10px;
+  align-items: center;
+  white-space: normal;
+  overflow: visible !important;
+}
+
+.scenario-header {
+  display: flex;
+  align-items: center;
+  padding: 5px 0;
+  overflow: visible !important;
+}
+
+.scenario-card {
+  margin-bottom: 5px !important;
+  overflow: visible !important;
+}
       
       .scenario-label {
         display: flex;
@@ -159,74 +176,131 @@ ui <- page_fluid(
         color: #555;
       }
       
+      /* Main content area background */
+      .bslib-page-fill {
+       background-color: #ffffff;
+       height: 100vh !important;
+       max-height: 100vh !important;
+       overflow: hidden !important;
+      }
+      
+      html, body {
+        height: 100vh !important;
+        max-height: 100vh !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      /* Add padding to main content */
+.main-content-container {
+ padding: 10px 20px !important;
+  height: calc(100vh - 20px) !important;
+  max-height: calc(100vh - 20px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* Header card adjustments */
+.header-card {
+  margin-bottom: 5px !important;
+  min-height: 60px !important;
+}
+      
+      /* Fix for main layout container */
+      #main_layout {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        min-height: 0 !important; /* Important to prevent flex containers from expanding */
+      }
+      
+      /* Sidebar styling */
+      .bslib-sidebar-layout {
+        height: 100vh !important;
+        max-height: 100vh !important;
+        overflow: hidden !important;
+      }
+      
+      .bslib-sidebar-layout > .bslib-sidebar-layout-panel {
+        height: 100vh !important;
+        max-height: 100vh !important;
+        overflow: auto !important;
+      }
+      
+      /* Prevent chart container from expanding */
+      .chart-container {
+        flex: 1 !important;
+        overflow: hidden !important;
+        min-height: 0 !important; /* Critical for flex containers */
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      
+      /* Ensure all layout columns respect container size */
+      .bslib-layout-column {
+        overflow: hidden !important;
+      }
+      
+      .flex-fill {
+  flex: 1 1 auto !important;
+  min-height: 0 !important; /* Critical for nested flex containers */
+  overflow: hidden !important;
+}
   ")
   ),
 
-  style = "height: 100vh; gap: 0rem; overflow: hidden !important; display: flex; flex-direction: column;",
+  style = "height: 100vh; max-height: 100vh; overflow: hidden;",
   
-  layout_columns(
-    height = "auto",
-    gap = "0px", 
-    col_widths = c(2, 1, 4, 1, 4),  # Adjusted for better balance
-    style = "width: 100%; background-color: #f8f9fa; border-bottom: 1px solid #e9ecef; padding: 8px 15px; display: flex; align-items: center;",
+  sidebar = sidebar(
+    bg = "#f8f9fa",
+    width = "300px",
+    padding = "15px",
+    style = "border-right: 1px solid #e9ecef;",
+    
+    uiOutput("report_date"),
     
     div(
-      style = "display: flex; align-items: center; height: 100%;",
-      uiOutput("report_date")
-    ),
-    
-    div(
-      style = "display: flex; align-items: center; justify-content: flex-end; height: 100%;",
-      HTML("<div style='margin-right: 10px; font-weight: 500;'><strong>Run report for:</strong></div>")
-    ),
-    
-    div(
-      style = "display: flex; align-items: center; height: 100%;",
-      div(
-        style = "width: 80%;",
-        selectInput(
-          "grp_select", 
-          label = NULL, 
-          choices = c("BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)", "BRI", "NBT", "WGH"),
-          width = "100%",
-          selectize = TRUE
-        )
+      style = "margin-top: 20px;",
+      tags$strong("Run report for:", style = "font-weight: 500;"),
+      selectInput(
+        "grp_select", 
+        label = NULL, 
+        choices = c("BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)", "BRI", "NBT", "WGH"),
+        width = "100%",
+        selectize = TRUE
       )
     ),
     
     div(
-      style = "display: flex; align-items: center; justify-content: flex-end; height: 100%;",
-      HTML("<div style='margin-right: 10px; font-weight: 500;'><strong>Under scenario:</strong></div>")
-    ),
-    
-    div(
-      style = "display: flex; align-items: center; height: 100%;",
-      div(
-        style = "width: 80%;",
-        selectInput(
-          "scenario_select", 
-          label = NULL, 
-          choices = c("Medical waits for admission: < 1 hour. Medical DTA Queue < 25% of ED bed capacity" = "cf", "Medical waits for admission: 0 hour. Medical DTA Queue 0% of ED bed capacity" = "full_cf"),
-          width = "100%",
-          selectize = TRUE
-        )
+      style = "margin-top: 15px;",
+      tags$strong("Under scenario:", style = "font-weight: 500;"),
+      selectInput(
+        "scenario_select", 
+        label = NULL, 
+        choices = c("Medical waits for admission: < 1 hour. Medical DTA Queue < 25% of ED bed capacity" = "cf", "Medical waits for admission: 0 hour. Medical DTA Queue 0% of ED bed capacity" = "full_cf"),
+        width = "100%",
+        selectize = TRUE
       )
     )
   ),
-  
+  div(
+    class = "main-content-container",  
   # Top heading paragraph
   card(
     full_screen = FALSE,
-    height = "6%",
-    class = "no-border-no-pad",
-    style = "overflow: hidden !important;",
+    height = "auto",
+    class = "no-border-no-pad header-card",
+    style = "overflow: hidden !important; margin-bottom: 10px; min-height: 80px;",
     gap = "0px",
     uiOutput("header")
   ),
 
   # Scenario descriptions - centered VS version
   layout_columns(
-    height = "6%",
+    height = "auto",
     col_widths = c(12),
     gap = "0px",
     style = "overflow: hidden !important;",
@@ -243,11 +317,11 @@ ui <- page_fluid(
   ),
   # Main layout - 3 columns
   layout_columns(
-    height = "80%",
-    col_widths = c(4, 4, 4),
+    height = NULL,
+      col_widths = c(4, 4, 4),
     gap = "0px",
-    # style = "overflow: hidden !important;",
-    class = "layout-column-no-gap",
+    class = "layout-column-no-gap flex-fill", 
+      style = "overflow: hidden !important;",
     
     # Left column 
     layout_column_wrap(
@@ -396,6 +470,7 @@ ui <- page_fluid(
         )
       )
     )
+  )
   )
 )
 
@@ -655,8 +730,9 @@ server <- function(input, output) {
                         "WGH" = "the emergency department at WGH")
     
     h5(
+      style = "line-height: 1.4; font-size: 14px; margin: 0;",
       HTML(glue::glue(
-        "<p><span class='secondary-text'>Over the last <b>7 days</b>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
+        "<p style='margin: 5px 0;'><span class='secondary-text' style='font-size: 14px;'>Over the last <b>7 days</b>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
       ))
     )
   })
@@ -669,17 +745,17 @@ server <- function(input, output) {
     dta_queue <- n_dta_norm()
     
     HTML(glue::glue('
-    <div style="display: grid; grid-template-columns: 1fr auto 1fr; width: 100%; padding: 0 20px; align-items: center;">
-      <div style="display: flex; align-items: center; justify-content: flex-end; padding-right: 20px;">
-        <span class="scenario-indicator" style="background-color: {app_colors["actual"]};"></span>
-        <span style="font-weight: 500; color: #333;"><strong>Actual</strong>: where admission waits were <strong>{dta_time} hours</strong> & the DTA queue was <strong>{dta_queue}</strong> of the bed capacity, on average</span>
-      </div>
-      <div style="margin: 0 15px; font-size: 24px; color: #666; font-weight: bold;">VS</div>
-      <div style="display: flex; align-items: center; padding-left: 20px;">
-        <span class="scenario-indicator" style="background-color: {app_colors["hypothetical"]};"></span>
-        <span style="font-weight: 500; color: #333;"><strong>Hypothetical</strong>: If medical waits for admission & Decision to Admit (DTA) queue were kept <strong>under 1 hour</strong> and <strong>25%</strong> of ED bed capacity</span>
-      </div>
+  <div class="scenario-grid">
+    <div style="display: flex; align-items: center; justify-content: flex-end; padding-right: 20px;">
+      <span class="scenario-indicator" style="background-color: {app_colors["actual"]};"></span>
+      <span style="font-weight: 500; color: #333;"><strong>Actual</strong>: where admission waits were <strong>{dta_time} hours</strong> & the DTA queue was <strong>{dta_queue}</strong> of the bed capacity, on average</span>
     </div>
+    <div style="margin: 0 15px; font-size: 24px; color: #666; font-weight: bold;">VS</div>
+    <div style="display: flex; align-items: center; padding-left: 20px;">
+      <span class="scenario-indicator" style="background-color: {app_colors["hypothetical"]};"></span>
+      <span style="font-weight: 500; color: #333;"><strong>Hypothetical</strong>: If medical waits for admission & Decision to Admit (DTA) queue were kept <strong>under 1 hour</strong> and <strong>25%</strong> of ED bed capacity</span>
+    </div>
+  </div>
   '))
   })
   
