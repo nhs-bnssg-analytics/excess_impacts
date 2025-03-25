@@ -206,7 +206,7 @@ ui <- page_fluid(
         selectInput(
           "scenario_select", 
           label = NULL, 
-          choices = c("Medical waits for admission: < 1 hour. Medical DTA Queue < 25% of ED bed capacity", "Medical waits for admission: 0 hour. Medical DTA Queue 0% of ED bed capacity"),
+          choices = c("Medical waits for admission: < 1 hour. Medical DTA Queue < 25% of ED bed capacity" = "cf", "Medical waits for admission: 0 hour. Medical DTA Queue 0% of ED bed capacity" = "full_cf"),
           width = "100%",
           selectize = TRUE
         )
@@ -419,19 +419,21 @@ server <- function(input, output) {
                         "cat2" = "(Category 2)",
                         "cat3" = "(Category 3)"
     )) %>%
-    mutate(sub_text = case_when(
+    mutate(
+      scenario = case_when(
+        str_detect(impact, r"((?<!full_)cf)") | str_detect(impact, r"((?<!full_)raw)")~ "cf",
+        str_detect(impact, "full_cf") | str_detect(impact, "full_raw") ~ "full_cf",
+        str_detect(impact, r"(impact(?!_cf))") ~ "actual",
+        .default = "n/a"
+      ),
+      sub_text = case_when(
       str_detect(impact, "om6_impact") ~ str_c(sub_text, "*"),
       str_detect(impact, "om4_impact") ~ str_c(sub_text, "*"),
       str_detect(impact, "om2_impact") ~ str_c(sub_text, "**"),
       str_detect(impact, "om1[abc]_impact") ~ str_c(sub_text, "**")
       )) %>%
+    mutate(impact = str_remove(impact, "_full")) %>%
     mutate(value_label = gen_html_text(emph_text)) 
-  
-  # Filtered data based on input selection
-  impacts_output <- reactive({
-    impacts_output_raw %>%
-      filter(grp == input$grp_select)
-  })
   
   
   # Store max report date as a static value
@@ -440,7 +442,7 @@ server <- function(input, output) {
   # Create a reactive expression for the filtered data
   filtered_data <- reactive({
     impacts_output_raw %>%
-      filter(grp == input$grp_select)
+      filter(grp == input$grp_select, scenario %in% c("n/a", "actual", input$scenario_select))
   })
   
   # Extract key metrics into separate reactive expressions
@@ -506,7 +508,8 @@ server <- function(input, output) {
   excess_resp <- reactive({
     impacts_output_raw %>%
       filter(report_date == max_report_date, 
-             impact %in% c("om1b_raw")) %>%
+             impact %in% c("om1b_raw"),
+             scenario %in% c("n/a", "actual", input$scenario_select)) %>%
       pull(emph_text)
   })
   
@@ -559,13 +562,15 @@ server <- function(input, output) {
     if (metric %in% c("om1b")) {
       return(    impacts_output_raw %>%
                    filter(report_date == max_report_date,
+                          scenario %in% c("n/a", "actual", input$scenario_select),
                           str_detect(impact, paste0("^", metric))) %>%
                    select(impact, value, label, target, sub_text, value_label))
     } else {
       # For other metrics, use the user-selected group
       return(    impacts_output_raw %>%
                    filter(report_date == max_report_date,
-                          grp == input$grp_select,  
+                          grp == input$grp_select,
+                          scenario %in% c("n/a", "actual", input$scenario_select),
                           str_detect(impact, paste0("^", metric))) %>%
                    select(impact, value, label, target, sub_text, value_label))
     }
@@ -594,6 +599,7 @@ server <- function(input, output) {
       filter(!str_detect(impact, "n_exposure|raw"))
   })
   
+  
   # Create a function to generate plots with consistent formatting
   create_plot <- function(data) {
     if (is.null(data) || nrow(data) == 0) {
@@ -607,10 +613,11 @@ server <- function(input, output) {
       ggplot(aes(x = impact, y = value, fill = impact)) +
       geom_col() +
       geom_hline(aes(yintercept = target), linetype = 2, size = 2, colour = "grey30") +
-      geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")) +
+      ggfx::with_outer_glow(geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
+                        colour = "white", x_offset = 0, y_offset = 0, expand = 10, sigma = 0) +
       theme_void() +
       scale_y_continuous(expand = expansion(mult = c(0, 0.4))) +
-      scale_fill_manual(values = c("#85BAFF", "#A3A78F")) +
+      scale_fill_manual(values = c("#beaed4", "#A3A78F")) +
       theme(legend.position = "off",
             plot.margin = margin(0, 0, 0, 0, "pt"),
             axis.text.x = element_blank(),
@@ -658,7 +665,7 @@ server <- function(input, output) {
     HTML(glue::glue('
     <div style="display: grid; grid-template-columns: 1fr auto 1fr; width: 100%; padding: 0 20px; align-items: center;">
       <div style="display: flex; align-items: center; justify-content: flex-end; padding-right: 20px;">
-        <span class="scenario-indicator" style="background-color: #85BAFF;"></span>
+        <span class="scenario-indicator" style="background-color: #beaed4;"></span>
         <span style="font-weight: 500; color: #333;"><strong>Actual</strong>: where admission waits were <strong>{dta_time} hours</strong> & the DTA queue was <strong>{dta_queue}</strong> of the bed capacity, on average</span>
       </div>
       <div style="margin: 0 15px; font-size: 24px; color: #666; font-weight: bold;">VS</div>
@@ -709,19 +716,19 @@ server <- function(input, output) {
   # Plot outputs - render directly from the chart data
   output$chart1 <- renderPlot({
     create_plot(mortality_chart_data())
-  })
+  }) %>% bindCache(input$scenario_select, input$grp_select)
   
   output$chart2 <- renderPlot({
     create_plot(los_chart_data())
-  })
+  }) %>% bindCache(input$scenario_select, input$grp_select)
   
   output$chart3 <- renderPlot({
     create_plot(resp_chart_data())
-  })
+  }) %>% bindCache(input$scenario_select, input$grp_select)
   
   output$chart4 <- renderPlot({
     create_plot(handover_chart_data())
-  })
+  }) %>% bindCache(input$scenario_select, input$grp_select)
   
   
 }

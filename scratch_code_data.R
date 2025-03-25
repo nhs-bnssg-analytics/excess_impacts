@@ -423,16 +423,22 @@ get_impact_data <- function(report_start, report_end){
     mutate(n_exposure = map_dbl(data, nrow)) %>%
     mutate(pred_mort = map(data, \(d) predict(mort_mod, newdata = d, type = "response"))) %>%
     mutate(pred_mort_cf = map(data, \(d) predict(mort_mod, newdata = mutate(d, dta_time = 1), type = "response"))) %>%
+    mutate(pred_mort_full_cf = map(data, \(d) predict(mort_mod, newdata = mutate(d, dta_time = 0), type = "response"))) %>%
     mutate(pred_readm = map(data, \(d) predict(readm_mod, newdata = d, type = "response"))) %>%
     mutate(pred_readm_cf = map(data, \(d) predict(readm_mod, newdata = mutate(d, dta_time = 1), type = "response"))) %>% 
+    mutate(pred_readm_full_cf = map(data, \(d) predict(readm_mod, newdata = mutate(d, dta_time = 0), type = "response"))) %>% 
     mutate(pred_los = map(data, \(d) predict.lm(los_mod, newdata = d))) %>%
     mutate(pred_los_cf = map(data, \(d) predict.lm(los_mod, newdata = mutate(d, dta_time = 1)))) %>%
+    mutate(pred_los_full_cf = map(data, \(d) predict.lm(los_mod, newdata = mutate(d, dta_time = 0)))) %>%
     mutate(om6_impact = map_dbl(pred_mort, \(x) sum(x, na.rm = TRUE))) %>%
     mutate(om6_impact_cf = map_dbl(pred_mort_cf, \(x) sum(x, na.rm = TRUE))) %>%
+    mutate(om6_impact_full_cf = map_dbl(pred_mort_full_cf, \(x) sum(x, na.rm = TRUE))) %>%
     mutate(om5_impact = map_dbl(pred_readm, \(x) sum(x, na.rm = TRUE))) %>%
     mutate(om5_impact_cf = map_dbl(pred_readm_cf, \(x) sum(x, na.rm = TRUE))) %>%
+    mutate(om5_impact_full_cf = map_dbl(pred_readm_full_cf, \(x) sum(x, na.rm = TRUE))) %>%
     mutate(om4_impact = map_dbl(pred_los, \(x) sum(x, na.rm = TRUE))) %>%
     mutate(om4_impact_cf = map_dbl(pred_los_cf, \(x) sum(x, na.rm = TRUE))) %>%
+    mutate(om4_impact_full_cf = map_dbl(pred_los_full_cf, \(x) sum(x, na.rm = TRUE))) %>%
     mutate(across(matches("om4_impact"), \(x) x/7)) %>%
     # mutate(om6_impact = map2_dbl(pred_mort, pred_mort_cf, ~sum(.x-.y, na.rm = TRUE))) %>%
     # mutate(om6_mean_or = map2_dbl(pred_mort, pred_mort_cf, ~mean((.x/(1-.x))/(.y/(1-.y))-1, na.rm = TRUE))) %>%
@@ -900,32 +906,37 @@ AND
     dat 
   })
   
+  
   ed_attend_impact <- dat_ed_time %>%
       left_join(dta_df %>% select(site, dt, n_dta_norm)) %>%
     mutate(ed_time_impact = (n_dta_norm * ed_time_coef)) %>%
     mutate(ed_time_impact_cf = (pmin(n_dta_norm, 0.25) * ed_time_coef)) %>%
+    mutate(ed_time_impact_full_cf = 0) %>%
     mutate(diff = ed_time_impact - ed_time_impact_cf) %>%
+    mutate(diff_full = ed_time_impact - ed_time_impact_full_cf) %>%
     mutate(trt_time_cf = trt_time - diff) %>%
+    mutate(trt_time_full_cf = trt_time - diff_full) %>%
     bind_rows(mutate(., site = "System total")) %>%
-    summarise(across(c(trt_time, trt_time_cf), \(x) mean(x < 4*60, na.rm = TRUE)),
+    summarise(across(c(trt_time, trt_time_cf, trt_time_full_cf), \(x) mean(x < 4*60, na.rm = TRUE)),
               diff = sum(diff, na.rm = TRUE),
+              diff_full = sum(diff_full, na.rm = TRUE),
               om3_n_exposure = n(),.by = site) %>%
-    rename(grp = site, om3_impact= trt_time, om3_impact_cf = trt_time_cf, om3_raw = diff) %>%
+    rename(grp = site, om3_impact= trt_time, om3_impact_cf = trt_time_cf, om3_raw = diff, om3_full_raw = diff_full) %>%
     pivot_longer(-grp, names_to = "impact") %>%
     mutate(target = 0.78,
            label = case_when(
-              impact %in% c("om3_impact", "om3_impact_cf") ~ "4-hour seen for treatment performance",
+              impact %in% c("om3_impact", "om3_impact_cf", "om3_impact_full_cf") ~ "4-hour seen for treatment performance",
               impact %in% c("om3_raw") ~ "Hours additional waiting to be seen for treatment",
               impact %in% c("om3_n_exposure") ~ "Number ED attends"
              ),
            emph_text = case_when(
-              impact %in% c("om3_impact", "om3_impact_cf") ~ percent(value, accuracy = 0.1),
-              impact %in% c("om3_raw") ~ number(round(value), big.mark = ","),
+              impact %in% c("om3_impact", "om3_impact_cf", "om3_impact_full_cf") ~ percent(value, accuracy = 0.1),
+              impact %in% c("om3_raw", "om3_raw_full") ~ number(round(value), big.mark = ","),
               impact %in% c("om3_n_exposure") ~ number(round(value), big.mark = ",")
              ),
            sub_text = case_when(
-              impact %in% c("om3_impact", "om3_impact_cf") ~ "4-hour performance",
-              impact %in% c("om3_raw") ~ "Time to be seen, hours",
+              impact %in% c("om3_impact", "om3_impact_cf", "om3_impact_full_cf") ~ "4-hour performance",
+              impact %in% c("om3_raw", "om3_raw_full") ~ "Time to be seen, hours",
               impact %in% c("om3_n_exposure") ~ label
              )
            )
@@ -964,29 +975,33 @@ AND
     left_join(select(dta_df, site, dt, n_dta_norm)) %>%
     mutate(handover_time_impact = (n_dta_norm * handover_coef)) %>%
     mutate(handover_time_impact_cf = (pmin(n_dta_norm, 0.25) * handover_coef)) %>%
+    mutate(handover_time_impact_full_cf = 0) %>%
     mutate(diff = handover_time_impact - handover_time_impact_cf) %>%
-    mutate(handover_time_cf = handover_time - diff) %>%
+    mutate(diff_full = handover_time_impact - handover_time_impact_full_cf) %>%
+    mutate(handover_time_cf = pmax(0, handover_time - diff)) %>%
+    mutate(handover_time_full_cf = pmax(0, handover_time - diff_full)) %>%
     bind_rows(mutate(., site = "System total")) %>%
-    summarise(across(c(handover_time, handover_time_cf), \(x) quantile(x, .9, na.rm = TRUE)),
+    summarise(across(c(handover_time, handover_time_cf, handover_time_full_cf), \(x) quantile(x, .9, na.rm = TRUE)),
               diff = sum(diff, na.rm = TRUE),
+              diff_full = sum(diff_full, na.rm = TRUE),
               om2_n_exposure = n(),
               .by = site) %>%
-    rename(grp = site, om2_impact= handover_time, om2_impact_cf = handover_time_cf, om2_raw = diff) %>%
+    rename(grp = site, om2_impact= handover_time, om2_impact_cf = handover_time_cf, om2_impact_full_cf = handover_time_full_cf, om2_raw = diff, om2_full_raw = diff_full) %>%
     pivot_longer(-grp, names_to = "impact") %>%
     mutate(target = 30,
            label = case_when(
-             impact %in% c("om2_impact", "om2_impact_cf") ~ "90th percentile ambulance handover time",
-             impact %in% c("om2_raw") ~ "Hours additional waiting for ambulance handover",
+             impact %in% c("om2_impact", "om2_impact_cf", "om2_impact_full_cf") ~ "90th percentile ambulance handover time",
+             impact %in% c("om2_raw", "om2_full_raw") ~ "Hours additional waiting for ambulance handover",
              impact %in% c("om2_n_exposure") ~ "Number of ambulance handovers"
            ),
            emph_text = case_when(
-             impact %in% c("om2_impact", "om2_impact_cf") ~ str_c(round(value)," minutes"),
-             impact %in% c("om2_raw") ~ number(round(value/60), big.mark = ","),
+             impact %in% c("om2_impact", "om2_impact_cf", "om2_impact_full_cf") ~ str_c(round(value)," minutes"),
+             impact %in% c("om2_raw", "om2_full_raw") ~ number(round(value/60), big.mark = ","),
              impact %in% c("om2_n_exposure") ~ number(round(value), big.mark = ",")
            ),
            sub_text = case_when(
-             impact %in% c("om2_impact", "om2_impact_cf") ~ "Ambulance handover time (90<sup>th</sup> percentile)",
-             impact %in% c("om2_raw") ~ "Hours waited for ambulance handover",
+             impact %in% c("om2_impact", "om2_impact_cf", "om2_impact_full_cf") ~ "Ambulance handover time (90<sup>th</sup> percentile)",
+             impact %in% c("om2_raw", "om2_full_raw") ~ "Hours waited for ambulance handover",
              impact %in% c("om2_n_exposure") ~ "Number of ambulance handovers"
            )
     )
@@ -1036,28 +1051,32 @@ AND
     left_join(rename(unnest(enframe(resp_coef), value), call_category = name, coef = value)) %>%
     mutate(response_impact = (n_dta_norm * coef)) %>%
     mutate(response_impact_cf = (pmin(n_dta_norm, 0.25) * coef))  %>%
+    mutate(response_impact_full_cf = 0)  %>%
     mutate(diff = response_impact - response_impact_cf) %>%
+    mutate(diff_full = response_impact - response_impact_full_cf) %>%
     mutate(response_cf = pmax(0, response - diff)) %>%
-    summarise(across(c(response, response_cf), \(x) quantile(x, .9, na.rm = TRUE)),
+    mutate(response_full_cf = pmax(0, response - diff_full)) %>%
+    summarise(across(c(response, response_cf, response_full_cf), \(x) quantile(x, .9, na.rm = TRUE)),
               diff = sum(diff, na.rm = TRUE),
+              diff_full = sum(diff_full, na.rm = TRUE),
               om1_n_exposure = n(),
               .by = call_category) %>%
-    rename(grp = call_category, om1_impact= response, om1_impact_cf = response_cf, om1_raw = diff) %>%
+    rename(grp = call_category, om1_impact= response, om1_impact_cf = response_cf, om1_impact_full_cf = response_full_cf, om1_raw = diff, om1_full_raw = diff_full) %>%
     pivot_longer(-grp, names_to = "impact") %>%
     mutate(
       label = case_when(
-        impact %in% c("om1_impact", "om1_impact_cf") ~ "90th percentile ambulance response",
-        impact %in% c("om1_raw") ~ "Hours additional waiting for ambulance response",
+        impact %in% c("om1_impact", "om1_impact_cf", "om1_impact_full_cf") ~ "90th percentile ambulance response",
+        impact %in% c("om1_raw", "om1_full_raw") ~ "Hours additional waiting for ambulance response",
         impact %in% c("om1_n_exposure") ~ "Number of ambulance responses"
       ),
       emph_text = case_when(
-        impact %in% c("om1_impact", "om1_impact_cf") ~ str_c(round(value)," minutes"),
-        impact %in% c("om1_raw") ~ number(round(value/60), big.mark = ","),
+        impact %in% c("om1_impact", "om1_impact_cf", "om1_impact_full_cf") ~ str_c(round(value)," minutes"),
+        impact %in% c("om1_raw", "om1_full_raw") ~ number(round(value/60), big.mark = ","),
         impact %in% c("om1_n_exposure") ~ number(round(value), big.mark = ",")
       ),
       sub_text = case_when(
-        impact %in% c("om1_impact", "om1_impact_cf") ~ "Ambulance response (90<sup>th</sup> percentile)",
-        impact %in% c("om1_raw") ~ "Hours waited for ambulance response",
+        impact %in% c("om1_impact", "om1_impact_cf", "om1_impact_full_cf") ~ "Ambulance response (90<sup>th</sup> percentile)",
+        impact %in% c("om1_raw", "om1_full_raw") ~ "Hours waited for ambulance response",
         impact %in% c("om1_n_exposure") ~ "Number of ambulance responses"
       ),
     impact = case_when(
