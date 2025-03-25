@@ -126,11 +126,12 @@ ui <- page_sidebar(
         margin-top: 0 !important;
       }
       
-      /* Scenario labels container */
+      /* Scenario labels container - updated */
 .scenario-grid {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   width: 100%;
+  min-height: 60px; /* Set minimum height */
   padding: 0 10px;
   align-items: center;
   white-space: normal;
@@ -142,13 +143,9 @@ ui <- page_sidebar(
   align-items: center;
   padding: 5px 0;
   overflow: visible !important;
+  min-height: 60px; /* Match minimum height */
 }
 
-.scenario-card {
-  margin-bottom: 5px !important;
-  overflow: visible !important;
-}
-      
       .scenario-label {
         display: flex;
         align-items: center;
@@ -306,9 +303,9 @@ ui <- page_sidebar(
     style = "overflow: hidden !important;",
     card(
       full_screen = FALSE,
-      height = "100%",
+      height = "auto",
       class = "no-border-no-pad",
-      style = "overflow: hidden !important;",
+      style = "overflow: visible !important; margin-bottom: 10px;",
       div(
         class = "scenario-header",
         uiOutput("scenario_text")
