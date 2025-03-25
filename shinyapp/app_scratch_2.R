@@ -4,6 +4,7 @@ library(bslib)
 library(ggtext)
 
 ui <- page_fluid(
+
   tags$head(
     tags$style("
     /* Override tooltip styles */
@@ -241,12 +242,12 @@ ui <- page_fluid(
       )
     )
   ),
-  # Main layout - 3 columns
+  # Main layout - 2 columns 
   layout_columns(
     height = "80%",
-    col_widths = c(4, 4, 4),
-    gap = "0px",
-    # style = "overflow: hidden !important;",
+    col_widths = c(4, 8),  # Changed from c(4, 4, 4) to c(4, 8)
+    gap = "20px",  # Add some gap for whitespace
+    style = "padding: 0 20px;",  # Add horizontal padding
     class = "layout-column-no-gap",
     
     # Left column 
@@ -309,7 +310,7 @@ ui <- page_fluid(
     )
     ,
     
-    # Middle column - 4 stacked bar charts
+    # right column - 4 stacked bar charts
     layout_column_wrap(
       width = 1,
       height = "100%",
@@ -358,41 +359,6 @@ ui <- page_fluid(
               card_body(plotOutput("chart4", height = "100%"))
             )
           )
-        )
-      )
-    ),
-    
-    # Right column - 4 cards with HTML text
-    
-    layout_column_wrap(
-      width = 1,
-      height = "100%",
-      class = "no-border-no-pad-text-center",
-      # style = "padding: 0;",
-      
-      # Top left card
-      card(
-        full_screen = FALSE,
-        class = "no-border-no-pad-text-center",
-        height = "48%",
-        card_body(
-          HTML("<h4>*Direct Impacts</h4>
-               <p>When patients experience delays in hospital admission, there are direct negative consequences on their health outcomes. Our analysis has revealed a clear association between these admission delays and increased 30-day mortality rates, as well as prolonged in-hospital lengths of stay.</p>
-               <ul>"
-          )
-        )
-      ),
-      
-      # Bottom left card
-      card(
-        full_screen = FALSE,
-        class = "no-border-no-pad-text-center",
-        height = "48%",
-        card_body(
-          HTML("<h4>**Indirect Impacts</h4>
-               <p>
-               The medical Decision to Admit (DTA) queue has wider impact, affecting not only patients waiting for admission, but also creating knock-on effects for other patients arriving at the Emergency Department. Specifically, our analysis demonstrates that a larger DTA queue is associated with a measurable increase in both ambulance handover times and emergency response times, indicating a bottleneck in the patient flow.
-               </p>")
         )
       )
     )
@@ -669,20 +635,39 @@ server <- function(input, output) {
     dta_queue <- n_dta_norm()
     
     HTML(glue::glue('
-    <div style="display: grid; grid-template-columns: 1fr auto 1fr; width: 100%; padding: 0 20px; align-items: center;">
-      <div style="display: flex; align-items: center; justify-content: flex-end; padding-right: 20px;">
+  <div style="display: grid; grid-template-columns: 4fr 8fr; width: 100%; align-items: center;">
+    <!-- Left side with actual scenario -->
+    <div style="text-align: right; padding-right: 20px;">
+      <span style="display: inline-flex; align-items: center; justify-content: flex-end;">
         <span class="scenario-indicator" style="background-color: {app_colors["actual"]};"></span>
         <span style="font-weight: 500; color: #333;"><strong>Actual</strong>: where admission waits were <strong>{dta_time} hours</strong> & the DTA queue was <strong>{dta_queue}</strong> of the bed capacity, on average</span>
+      </span>
+    </div>
+    
+    <!-- Right side with VS and hypothetical scenario -->
+    <div style="position: relative;">
+      <!-- VS positioned absolutely at the center of the right column -->
+      <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 50px; text-align: center; z-index: 10;">
+        <span style="font-size: 24px; color: #666; font-weight: bold;">VS</span>
       </div>
-      <div style="margin: 0 15px; font-size: 24px; color: #666; font-weight: bold;">VS</div>
-      <div style="display: flex; align-items: center; padding-left: 20px;">
-        <span class="scenario-indicator" style="background-color: {app_colors["hypothetical"]};"></span>
-        <span style="font-weight: 500; color: #333;"><strong>Hypothetical</strong>: If medical waits for admission & Decision to Admit (DTA) queue were kept <strong>under 1 hour</strong> and <strong>25%</strong> of ED bed capacity</span>
+      
+      <!-- Two sections in the right column: before VS and after VS -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; width: 100%;">
+        <!-- Empty space for the left half where VS will appear -->
+        <div></div>
+        
+        <!-- Hypothetical scenario text in the right half -->
+        <div style="padding-left: 10px;">
+          <span style="display: inline-flex; align-items: center;">
+            <span class="scenario-indicator" style="background-color: {app_colors["hypothetical"]};"></span>
+            <span style="font-weight: 500; color: #333;"><strong>Hypothetical</strong>: If medical waits for admission & Decision to Admit (DTA) queue were kept <strong>under 1 hour</strong> and <strong>25%</strong> of ED bed capacity</span>
+          </span>
+        </div>
       </div>
     </div>
-  '))
+  </div>
+'))
   })
-  
   
   output$mort_subtext <- renderUI({
     req(excess_mort(), n_admits())
