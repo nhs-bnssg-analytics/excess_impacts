@@ -253,7 +253,7 @@ ui <- page_sidebar(
   
   sidebar = sidebar(
     bg = "#f8f9fa",
-    width = "300px",
+    width = "500px",
     padding = "15px",
     style = "border-right: 1px solid #e9ecef;",
     
@@ -473,9 +473,9 @@ ui <- page_sidebar(
 
 server <- function(input, output) {
   
-  app_colors <- c(
-    actual = "#beaed4",     # Purple for actual data
-    hypothetical = "#A3A78F" # Grey-green for hypothetical scenario
+  app_colours <- c(
+    actual = "#88a0a8",     # Purple for actual data
+    hypothetical = "#B4CEB3" # Grey-green for hypothetical scenario
   )
 
   gen_html_text <- function(emph_text){
@@ -695,7 +695,7 @@ server <- function(input, output) {
                         colour = "white", x_offset = 0, y_offset = 0, expand = 12.5, sigma = 0) +
       theme_void() +
       scale_y_continuous(expand = expansion(mult = c(0, 0.4))) +
-      scale_fill_manual(values = unname(app_colors)) +
+      scale_fill_manual(values = unname(app_colours)) +
       theme(legend.position = "off",
             plot.margin = margin(0, 0, 0, 0, "pt"),
             axis.text.x = element_blank(),
@@ -712,7 +712,7 @@ server <- function(input, output) {
   # Render UI outputs with proper isolation 
   output$report_date <- renderUI({
     HTML(glue::glue(
-      "<span><h4><strong>Excess Impacts</strong>: A what-if analysis</h4> Based on data from <strong> {format(max_report_date, '%d %B %Y')}</strong></span>"
+      "<span><h4><strong>Excess Impacts</strong> </br> A what-if analysis</h4> Based on data from </br> <strong> {format(max_report_date, '%d %B %Y')}</strong></span>"
     ))
   })
   
@@ -727,7 +727,7 @@ server <- function(input, output) {
                         "WGH" = "the emergency department at WGH")
     
     h5(
-      style = "line-height: 1.4; font-size: 14px; margin: 0;",
+      style = "line-height: 1.4; font-size: 18px; margin: 0;",
       HTML(glue::glue(
         "<p style='margin: 5px 0;'><span class='secondary-text' style='font-size: 14px;'>Over the last <b>7 days</b>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
       ))
@@ -744,12 +744,12 @@ server <- function(input, output) {
     HTML(glue::glue('
   <div class="scenario-grid">
     <div style="display: flex; align-items: center; justify-content: flex-end; padding-right: 20px;">
-      <span class="scenario-indicator" style="background-color: {app_colors["actual"]};"></span>
+      <span class="scenario-indicator" style="background-color: {app_colours["actual"]};"></span>
       <span style="font-weight: 500; color: #333;"><strong>Actual</strong>: where admission waits were <strong>{dta_time} hours</strong> & the DTA queue was <strong>{dta_queue}</strong> of the bed capacity, on average</span>
     </div>
     <div style="margin: 0 15px; font-size: 24px; color: #666; font-weight: bold;">VS</div>
     <div style="display: flex; align-items: center; padding-left: 20px;">
-      <span class="scenario-indicator" style="background-color: {app_colors["hypothetical"]};"></span>
+      <span class="scenario-indicator" style="background-color: {app_colours["hypothetical"]};"></span>
       <span style="font-weight: 500; color: #333;"><strong>Hypothetical</strong>: If medical waits for admission & Decision to Admit (DTA) queue were kept <strong>under 1 hour</strong> and <strong>25%</strong> of ED bed capacity</span>
     </div>
   </div>
