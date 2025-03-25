@@ -3,6 +3,158 @@ library(shiny)
 library(bslib)
 library(ggtext)
 
+# # utility functions
+
+# Prety html text
+gen_html_text <- function(emph_text){
+  str_c("<span style='font-weight:bold;font-size:30pt;'>",
+        emph_text,
+        # "</span><br><span style='font-size:15pt'>",
+        # sub_text,
+        "</span>")
+}
+
+# Create a function to generate plots with consistent formatting
+create_plot <- function(data) {
+  if (is.null(data) || nrow(data) == 0) {
+    # Return an empty plot for debugging
+    return(ggplot() + 
+             theme_void() + 
+             labs(title = "No data available"))
+  }
+  
+  data %>%
+    ggplot(aes(x = impact, y = value, fill = impact)) +
+    geom_col() +
+    geom_hline(aes(yintercept = target), linetype = 2, size = 2, colour = "grey30") +
+    ggfx::with_outer_glow(geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
+                          colour = "white", x_offset = 0, y_offset = 0, expand = 10, sigma = 0) +
+    theme_void() +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.4))) +
+    scale_fill_manual(values = c("#beaed4", "#A3A78F")) +
+    theme(legend.position = "off",
+          plot.margin = margin(0, 0, 0, 0, "pt"),
+          axis.text.x = element_blank(),
+          axis.text.y = element_blank(),
+          axis.line.x = element_line(linewidth = 2.5, colour = "grey30"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          plot.title = element_textbox(size = 20, hjust = 0.5),
+          plot.caption = element_textbox(size = 20, hjust = 0.5, margin = margin(t = 10), face = "bold")
+    ) +
+    labs(caption = data$sub_text[1], y = "", x = "")
+}
+
+
+# load raw data
+impacts_output_raw <- readRDS("../data/avoidable_impacts_output.RDS") %>%
+  mutate(grp = recode(grp,
+                      "System total" = "BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)",
+                      "WESTON GENERAL HOSPITAL" = "WGH", 
+                      "SOUTHMEAD HOSPITAL" = "NBT", 
+                      "BRISTOL ROYAL INFIRMARY" = "BRI", 
+                      "cat1" = "(Category 1)",
+                      "cat2" = "(Category 2)",
+                      "cat3" = "(Category 3)"
+  )) %>%
+  mutate(
+    scenario = case_when(
+      str_detect(impact, r"((?<!full_)cf)") | str_detect(impact, r"((?<!full_)raw)")~ "cf",
+      str_detect(impact, "full_cf") | str_detect(impact, "full_raw") ~ "full_cf",
+      str_detect(impact, r"(impact(?!_cf))") ~ "actual",
+      .default = "n/a"
+    ),
+    sub_text = case_when(
+      str_detect(impact, "om6_impact") ~ str_c(sub_text, "*"),
+      str_detect(impact, "om4_impact") ~ str_c(sub_text, "*"),
+      str_detect(impact, "om2_impact") ~ str_c(sub_text, "**"),
+      str_detect(impact, "om1[abc]_impact") ~ str_c(sub_text, "**")
+    )) %>%
+  mutate(impact = str_remove(impact, "_full")) %>%
+  mutate(value_label = gen_html_text(emph_text)) 
+
+# Store max report date as a static value
+max_report_date <- max(impacts_output_raw$report_date)
+
+# Create a cache environment for pre-rendered plots
+plotCache <- new.env()
+
+# Function to pre-render all charts
+preRenderAllCharts <- function(impacts_output_raw) {
+  # Get max report date once
+  max_report_date <- max(impacts_output_raw$report_date)
+  
+  message("Pre-rendering all chart combinations...")
+  
+  # Define all possible input combinations
+  hospitals <- c(
+    "BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)", 
+    "BRI", 
+    "NBT", 
+    "WGH"
+  )
+  
+  scenarios <- c("cf", "full_cf")
+  
+  # Pre-render all combinations
+  for (hospital in hospitals) {
+    for (scen in scenarios) {
+      message("Pre-rendering charts for: ", hospital, " | Scenario: ", scen)
+      
+      # Get mortality chart data with exact same filtering logic as in reactive expressions
+      mortality_data <- impacts_output_raw %>%
+        filter(report_date == max_report_date,
+               grp == hospital,
+               scenario %in% c("n/a", "actual", scen),
+               str_detect(impact, "^om6")) %>%
+        filter(!str_detect(impact, "n_exposure|raw")) %>%
+        select(impact, value, label, target, sub_text, value_label)
+      
+      # Get LOS chart data
+      los_data <- impacts_output_raw %>%
+        filter(report_date == max_report_date,
+               grp == hospital,
+               scenario %in% c("n/a", "actual", scen),
+               str_detect(impact, "^om4")) %>%
+        filter(!str_detect(impact, "n_exposure|raw")) %>%
+        select(impact, value, label, target, sub_text, value_label)
+      
+      # Get resp chart data
+      resp_data <- impacts_output_raw %>%
+        filter(report_date == max_report_date,
+               scenario %in% c("n/a", "actual", scen),
+               str_detect(impact, "^om1b")) %>%
+        filter(!str_detect(impact, "n_exposure|raw")) %>%
+        select(impact, value, label, target, sub_text, value_label)
+      
+      # Get handover chart data
+      handover_data <- impacts_output_raw %>%
+        filter(report_date == max_report_date,
+               grp == hospital,
+               scenario %in% c("n/a", "actual", scen),
+               str_detect(impact, "^om2")) %>%
+        filter(!str_detect(impact, "n_exposure|raw")) %>%
+        select(impact, value, label, target, sub_text, value_label)
+      
+      # Create all charts
+      chart1 <- create_plot(mortality_data)
+      chart2 <- create_plot(los_data)
+      chart3 <- create_plot(resp_data)
+      chart4 <- create_plot(handover_data)
+      
+      # Store in cache with keys
+      plotCache[[paste("chart1", hospital, scen, sep = "_")]] <- chart1
+      plotCache[[paste("chart2", hospital, scen, sep = "_")]] <- chart2
+      plotCache[[paste("chart3", hospital, scen, sep = "_")]] <- chart3
+      plotCache[[paste("chart4", hospital, scen, sep = "_")]] <- chart4
+    }
+  }
+  
+  message("All charts pre-rendered successfully!")
+}
+
+preRenderAllCharts(impacts_output_raw)
+
 ui <- page_fluid(
   tags$head(
     tags$style("
@@ -400,44 +552,8 @@ ui <- page_fluid(
 )
 
 server <- function(input, output) {
-
-  gen_html_text <- function(emph_text){
-    str_c("<span style='font-weight:bold;font-size:30pt;'>",
-                        emph_text,
-                        # "</span><br><span style='font-size:15pt'>",
-                        # sub_text,
-                        "</span>")
-    }
   
-  impacts_output_raw <- readRDS("../data/avoidable_impacts_output.RDS") %>%
-    mutate(grp = recode(grp,
-                        "System total" = "BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)",
-                        "WESTON GENERAL HOSPITAL" = "WGH", 
-                        "SOUTHMEAD HOSPITAL" = "NBT", 
-                        "BRISTOL ROYAL INFIRMARY" = "BRI", 
-                        "cat1" = "(Category 1)",
-                        "cat2" = "(Category 2)",
-                        "cat3" = "(Category 3)"
-    )) %>%
-    mutate(
-      scenario = case_when(
-        str_detect(impact, r"((?<!full_)cf)") | str_detect(impact, r"((?<!full_)raw)")~ "cf",
-        str_detect(impact, "full_cf") | str_detect(impact, "full_raw") ~ "full_cf",
-        str_detect(impact, r"(impact(?!_cf))") ~ "actual",
-        .default = "n/a"
-      ),
-      sub_text = case_when(
-      str_detect(impact, "om6_impact") ~ str_c(sub_text, "*"),
-      str_detect(impact, "om4_impact") ~ str_c(sub_text, "*"),
-      str_detect(impact, "om2_impact") ~ str_c(sub_text, "**"),
-      str_detect(impact, "om1[abc]_impact") ~ str_c(sub_text, "**")
-      )) %>%
-    mutate(impact = str_remove(impact, "_full")) %>%
-    mutate(value_label = gen_html_text(emph_text)) 
-  
-  
-  # Store max report date as a static value
-  max_report_date <- max(impacts_output_raw$report_date)
+  shinyOptions(renderPrint.trunc = FALSE)
   
   # Create a reactive expression for the filtered data
   filtered_data <- reactive({
@@ -506,6 +622,7 @@ server <- function(input, output) {
   })
   
   excess_resp <- reactive({
+    filtered_data()
     impacts_output_raw %>%
       filter(report_date == max_report_date, 
              impact %in% c("om1b_raw"),
@@ -599,38 +716,6 @@ server <- function(input, output) {
       filter(!str_detect(impact, "n_exposure|raw"))
   })
   
-  
-  # Create a function to generate plots with consistent formatting
-  create_plot <- function(data) {
-    if (is.null(data) || nrow(data) == 0) {
-      # Return an empty plot for debugging
-      return(ggplot() + 
-               theme_void() + 
-               labs(title = "No data available"))
-    }
-
-    data %>%
-      ggplot(aes(x = impact, y = value, fill = impact)) +
-      geom_col() +
-      geom_hline(aes(yintercept = target), linetype = 2, size = 2, colour = "grey30") +
-      ggfx::with_outer_glow(geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
-                        colour = "white", x_offset = 0, y_offset = 0, expand = 10, sigma = 0) +
-      theme_void() +
-      scale_y_continuous(expand = expansion(mult = c(0, 0.4))) +
-      scale_fill_manual(values = c("#beaed4", "#A3A78F")) +
-      theme(legend.position = "off",
-            plot.margin = margin(0, 0, 0, 0, "pt"),
-            axis.text.x = element_blank(),
-            axis.text.y = element_blank(),
-            axis.line.x = element_line(linewidth = 2.5, colour = "grey30"),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            plot.title = element_textbox(size = 20, hjust = 0.5),
-            plot.caption = element_textbox(size = 20, hjust = 0.5, margin = margin(t = 10), face = "bold")
-      ) +
-      labs(caption = data$sub_text[1], y = "", x = "")
-  }
-  
   # Render UI outputs with proper isolation 
   output$report_date <- renderUI({
     HTML(glue::glue(
@@ -713,22 +798,28 @@ server <- function(input, output) {
     )
   })
   
-  # Plot outputs - render directly from the chart data
   output$chart1 <- renderPlot({
-    create_plot(mortality_chart_data())
-  }) %>% bindCache(input$scenario_select, input$grp_select)
+    # Create cache key from inputs
+    cache_key <- paste("chart1", input$grp_select, input$scenario_select, sep = "_")
+    
+    # Simply return the pre-rendered plot - no conditional logic
+    plotCache[[cache_key]]
+  }, execOnResize = FALSE)  # Add this parameter
   
   output$chart2 <- renderPlot({
-    create_plot(los_chart_data())
-  }) %>% bindCache(input$scenario_select, input$grp_select)
+    cache_key <- paste("chart2", input$grp_select, input$scenario_select, sep = "_")
+    plotCache[[cache_key]]
+  }, execOnResize = FALSE)  # Add this parameter
   
   output$chart3 <- renderPlot({
-    create_plot(resp_chart_data())
-  }) %>% bindCache(input$scenario_select, input$grp_select)
+    cache_key <- paste("chart3", input$grp_select, input$scenario_select, sep = "_")
+    plotCache[[cache_key]]
+  }, execOnResize = FALSE)  # Add this parameter
   
   output$chart4 <- renderPlot({
-    create_plot(handover_chart_data())
-  }) %>% bindCache(input$scenario_select, input$grp_select)
+    cache_key <- paste("chart4", input$grp_select, input$scenario_select, sep = "_")
+    plotCache[[cache_key]]
+  }, execOnResize = FALSE)  # Add this parameter
   
   
 }
