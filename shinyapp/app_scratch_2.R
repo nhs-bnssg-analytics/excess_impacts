@@ -6,132 +6,173 @@ library(ggtext)
 ui <- page_sidebar(
   tags$head(
     tags$style("
-   /* Override tooltip styles */
-      .tooltip-inner {
-        background-color: white !important;
-        color: black !important;
-        max-width: none !important;
-        padding: 10px !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      }
-      
-    .no-border {
-      border: none !important;
-      box-shadow: none !important;
-    }
-    .no-border-no-pad {
-      padding: 0px !important;
-      margin: 0 !important;
-      border: none !important;
-      box-shadow: none !important;
-      --bs-card-spacer-y: 0 !important;
-      --bs-card-spacer-x: 0 !important;
-    }
-    .no-border-no-pad-text-center {
-      padding: 0px !important;
-      margin: 0 !important;
-      border: none !important;
-      box-shadow: none !important;
-      display: grid;
-      place-items: center start;
-      height: 100%;
-      --bs-card-spacer-y: 0 !important;
-      --bs-card-spacer-x: 0 !important;
-    }
-    .column-divider {
-        border-right: 3px solid #dee2e6;
-        height: 100%;
-        padding-right: 1rem;
-    }
-    .custom-table {
-        border-collapse: collapse;
-        width: 100%;
-        margin: 20px 0;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      }
-      
-      .custom-table th {
-        background-color: #2c3e50;
-        color: white;
-        padding: 12px;
-        text-align: left;
-        border-bottom: 2px solid #1a252f;
-      }
-      
-      .custom-table td {
-        padding: 10px;
-        border-bottom: 1px solid #e0e0e0;
-      }
-      
-      .custom-table tr:nth-child(even) {
-        background-color: #f8f9fa;
-      }
-      
-      .custom-table tr:hover {
-        background-color: #e9ecef;
-        transition: background-color 0.2s ease;
-      }
-      
-      .custom-table .number-cell {
-        text-align: right;
-        color: #2980b9;
-        font-weight: 500;
-      }
-      
-      .custom-table .highlight {
-        color: #e74c3c;
-        font-weight: bold;
-      }
-      .vertical-line {
-        position: absolute;
-        left: 49.5%;
-        top: 0;
-        bottom: 0;
-        width: 10x;
-        border-left: 4px solid darkgray;
-        z-index: 1000;
-      }
-      .primary-text {
-        font-size: 25pt;
-        margin-bottom: 1rem;
-      }
-      
+  /* Main page and container settings */
+html, body, .bslib-page-fill {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.bslib-page-fill {
+  background-color: #ffffff;
+}
+
+.main-content-container {
+  padding: 10px 20px !important;
+  height: calc(100vh - 20px) !important;
+  max-height: calc(100vh - 20px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* Flex utilities */
+.flex-fill {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Card styling */
+.card {
+  border-radius: 0 !important;
+}
+
+.no-border {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.no-border-no-pad {
+  padding: 0px !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  --bs-card-spacer-y: 0 !important;
+  --bs-card-spacer-x: 0 !important;
+}
+
+.no-border-no-pad-text-center {
+  padding: 0px !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: grid;
+  place-items: center start;
+  height: 100%;
+  --bs-card-spacer-y: 0 !important;
+  --bs-card-spacer-x: 0 !important;
+}
+
+.header-card {
+  margin-bottom: 5px !important;
+  min-height: 60px !important;
+}
+
+/* Layout utilities */
+.layout-column-no-gap {
+  --bs-layout-columns-gap: 0 !important;
+  --bs-layout-rows-gap: 0 !important;
+}
+
+.bslib-column-wrap {
+  overflow: hidden !important;
+}
+
+.bslib-layout-column {
+  overflow: hidden !important;
+}
+
+/* Sidebar styling */
+.bslib-sidebar-layout {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+}
+
+.bslib-sidebar-layout > .bslib-sidebar-layout-panel {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: auto !important;
+}
+
+/* Main layout container */
+#main_layout {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  min-height: 0 !important;
+}
+
+/* Chart container */
+.chart-container {
+  flex: 1 !important;
+  overflow: hidden !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Text styling */
+.primary-text {
+  font-size: 25pt;
+  margin-bottom: 1rem;
+}
+
 .secondary-text {
   font-size: 14px !important;
   margin-bottom: 0.5rem !important;
   line-height: 1.4 !important;
 }
-      /* Fix column wrap layouts */
-      .bslib-column-wrap {
-        overflow: hidden !important;
-      }
-      .card {
-       border-radius: 0 !important;
-      }
-      .layout-column-no-gap {
-      --bs-layout-columns-gap: 0 !important;
-      --bs-layout-rows-gap: 0 !important;
-      }
-            /* Remove vertical padding from select inputs */
-      .form-group {
-        margin-bottom: 0 !important;
-        margin-top: 0 !important;
-        padding-bottom: 0 !important;
-        padding-top: 0 !important;
-      }
-      
-      /* Optional: adjust the select box itself if needed */
-      .selectize-control {
-        margin-bottom: 0 !important;
-        margin-top: 0 !important;
-      }
-      
-      /* Scenario labels container - updated */
+
+/* Form styling */
+.form-group {
+  margin-bottom: 0 !important;
+  margin-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-top: 0 !important;
+}
+
+.selectize-control {
+  margin-bottom: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Tooltip customization */
+.tooltip-inner {
+  background-color: white !important;
+  color: black !important;
+  max-width: none !important;
+  padding: 10px !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Divider styling */
+.column-divider {
+  border-right: 3px solid #dee2e6;
+  height: 100%;
+  padding-right: 1rem;
+}
+
+.vertical-line {
+  position: absolute;
+  left: 49.5%;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  border-left: 4px solid darkgray;
+  z-index: 1000;
+}
+
+/* Scenario styling */
 .scenario-grid {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   width: 100%;
-  min-height: 60px; /* Set minimum height */
+  min-height: 60px;
   padding: 0 10px;
   align-items: center;
   white-space: normal;
@@ -143,117 +184,199 @@ ui <- page_sidebar(
   align-items: center;
   padding: 5px 0;
   overflow: visible !important;
-  min-height: 60px; /* Match minimum height */
+  min-height: 60px;
 }
 
-      .scenario-label {
-        display: flex;
-        align-items: center;
+.scenario-label {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.scenario-indicator {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  border-radius: 3px;
+}
+
+.scenario-arrow {
+  font-size: 24px;
+  margin: 0 10px;
+  color: #555;
+}
+
+.scenario-bracket {
+  font-size: 40px;
+  font-weight: 300;
+  margin: 0 5px;
+  color: #555;
+}
+
+/* Table styling */
+.custom-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 20px 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.custom-table th {
+  background-color: #2c3e50;
+  color: white;
+  padding: 12px;
+  text-align: left;
+  border-bottom: 2px solid #1a252f;
+}
+
+.custom-table td {
+  padding: 10px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.custom-table tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.custom-table tr:hover {
+  background-color: #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.custom-table .number-cell {
+  text-align: right;
+  color: #2980b9;
+  font-weight: 500;
+}
+
+.custom-table .highlight {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+/* Custom styles for sidebar toggle */
+      .sidebar-toggle-label {
+        margin-left: 8px;
         font-size: 14px;
         font-weight: 500;
+        display: inline-block;
+        vertical-align: middle;
       }
       
-      .scenario-indicator {
-        width: 16px;
-        height: 16px;
-        margin-right: 8px;
-        border-radius: 3px;
-      }
-      
-      .scenario-arrow {
-        font-size: 24px;
-        margin: 0 10px;
-        color: #555;
-      }
-      
-      .scenario-bracket {
-        font-size: 40px;
-        font-weight: 300;
-        margin: 0 5px;
-        color: #555;
-      }
-      
-      /* Main content area background */
-      .bslib-page-fill {
-       background-color: #ffffff;
-       height: 100vh !important;
-       max-height: 100vh !important;
-       overflow: hidden !important;
-      }
-      
-      html, body {
-        height: 100vh !important;
-        max-height: 100vh !important;
-        overflow: hidden !important;
-        margin: 0 !important;
-        padding: 0 !important;
+      /* Hide label when sidebar is open */
+      .bslib-sidebar-layout.sidebar-open .sidebar-toggle-label {
+        display: none;
       }
 
-      /* Add padding to main content */
-.main-content-container {
- padding: 10px 20px !important;
-  height: calc(100vh - 20px) !important;
-  max-height: calc(100vh - 20px) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
+/* Radio-table wrapper */
+.radio-table-wrapper {
+  position: relative;
+  margin-bottom: 20px;
 }
 
-/* Header card adjustments */
-.header-card {
-  margin-bottom: 5px !important;
-  min-height: 60px !important;
+.radio-buttons-column {
+  position: absolute;
+  top: 45px;
+  left: 5px;
+  z-index: 10;
+  width: 60px;
 }
-      
-      /* Fix for main layout container */
-      #main_layout {
-        flex: 1 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        overflow: hidden !important;
-        min-height: 0 !important; /* Important to prevent flex containers from expanding */
-      }
-      
-      /* Sidebar styling */
-      .bslib-sidebar-layout {
-        height: 100vh !important;
-        max-height: 100vh !important;
-        overflow: hidden !important;
-      }
-      
-      .bslib-sidebar-layout > .bslib-sidebar-layout-panel {
-        height: 100vh !important;
-        max-height: 100vh !important;
-        overflow: auto !important;
-      }
-      
-      /* Prevent chart container from expanding */
-      .chart-container {
-        flex: 1 !important;
-        overflow: hidden !important;
-        min-height: 0 !important; /* Critical for flex containers */
-        display: flex !important;
-        flex-direction: column !important;
-      }
-      
-      /* Ensure all layout columns respect container size */
-      .bslib-layout-column {
-        overflow: hidden !important;
-      }
-      
-      .flex-fill {
-  flex: 1 1 auto !important;
-  min-height: 0 !important; /* Critical for nested flex containers */
-  overflow: hidden !important;
-      }
-  ")
-  ),
+
+.radio-buttons-column .radio {
+  margin: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 46px !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.radio-buttons-column .radio label {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radio-buttons-column .radio span {
+  display: none;
+}
+
+.table-container {
+  margin-left: 0;
+}
+
+.content-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #ddd;
+}
+
+.content-table th, .content-table td {
+  padding: 12px 15px !important;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+  height: 22px !important;
+}
+
+.content-table th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+}
+
+.col-select {
+  width: 60px;
+}
+
+.content-row:hover {
+  background-color: #f9f9f9;
+}
+
+.content-row.active {
+  background-color: #e8f0fe;
+}
+
+.shiny-options-group {
+  position: relative;
+  top: 54px !important;
+  margin-top: 0 !important;
+}
+
+.radio-buttons-column .radio:first-child {
+  margin-bottom: 15px !important;
+}
+
+.radio-buttons-column .radio:last-child {
+  margin-top: 10px !important;
+}
+  "),
+    tags$script(HTML("
+      $(document).ready(function() {
+        // Add text to the sidebar toggle button after a short delay to ensure DOM is ready
+        setTimeout(function() {
+          var toggleBtn = $('.bslib-sidebar-layout-toggle');
+          
+          // Only add the label if it doesn't exist yet
+          if (toggleBtn.find('.sidebar-toggle-label').length === 0) {
+            toggleBtn.append('<span class=\"sidebar-toggle-label\">More information & options</span>');
+          }
+        }, 100);
+      });
+    "))
+  
+    ),
 
   style = "height: 100vh; max-height: 100vh; overflow: hidden;",
   
   sidebar = sidebar(
     bg = "#f8f9fa",
     width = "500px",
+    open = FALSE,
     padding = "15px",
     style = "border-right: 1px solid #e9ecef;",
     
@@ -438,7 +561,16 @@ ui <- page_sidebar(
   margin-top: 10px !important; /* Push second button up slightly */
 }
     "))
-    )
+    ),
+        HTML("<h4>*Direct Impacts</h4>
+               <p>When patients experience delays in hospital admission, there are direct negative consequences on their health outcomes. Our analysis has revealed a clear association between these admission delays and increased 30-day mortality rates, as well as prolonged in-hospital lengths of stay.</p>
+               </p>
+             <h4>**Indirect Impacts</h4>
+               <p>
+               The medical Decision to Admit (DTA) queue has wider impact, affecting not only patients waiting for admission, but also creating knock-on effects for other patients arriving at the Emergency Department. Specifically, our analysis demonstrates that a larger DTA queue is associated with a measurable increase in both ambulance handover times and emergency response times, indicating a bottleneck in the patient flow.
+               </p>"
+        )
+
   ),
   div(
     class = "main-content-container",  
@@ -595,34 +727,9 @@ ui <- page_sidebar(
     layout_column_wrap(
       width = 1,
       height = "100%",
-      class = "no-border-no-pad-text-center",
+      class = "no-border-no-pad-text-center"
       # style = "padding: 0;",
       
-      # Top left card
-      card(
-        full_screen = FALSE,
-        class = "no-border-no-pad-text-center",
-        height = "48%",
-        card_body(
-          HTML("<h4>*Direct Impacts</h4>
-               <p>When patients experience delays in hospital admission, there are direct negative consequences on their health outcomes. Our analysis has revealed a clear association between these admission delays and increased 30-day mortality rates, as well as prolonged in-hospital lengths of stay.</p>
-               <ul>"
-          )
-        )
-      ),
-      
-      # Bottom left card
-      card(
-        full_screen = FALSE,
-        class = "no-border-no-pad-text-center",
-        height = "48%",
-        card_body(
-          HTML("<h4>**Indirect Impacts</h4>
-               <p>
-               The medical Decision to Admit (DTA) queue has wider impact, affecting not only patients waiting for admission, but also creating knock-on effects for other patients arriving at the Emergency Department. Specifically, our analysis demonstrates that a larger DTA queue is associated with a measurable increase in both ambulance handover times and emergency response times, indicating a bottleneck in the patient flow.
-               </p>")
-        )
-      )
     )
   )
   )
