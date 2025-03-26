@@ -245,7 +245,7 @@ ui <- page_sidebar(
   flex: 1 1 auto !important;
   min-height: 0 !important; /* Critical for nested flex containers */
   overflow: hidden !important;
-}
+      }
   ")
   ),
 
@@ -270,119 +270,174 @@ ui <- page_sidebar(
         selectize = TRUE
       )
     ),
-    
-    card(
-      card_header("Scenario Selection"),
+    # Container for our aligned radio buttons and table
+    div(
+      class = "radio-table-wrapper",
       
-      # Table-style radio buttons with column headers
+      # Container for the radio buttons (positioned absolutely)
       div(
-        class = "table-radio-container",
-        # Table header
-        div(class = "table-radio-header",
-            div("Select"),
-            div("Medical waits for admission"),
-            div("Medical DTA Queue")
-        ),
-        
-        # Custom radio buttons with table formatting
-        div(
-          class = "table-radio-body",
-          # First option
-          div(class = "table-radio-row",
-              div(class = "radio-cell", 
-                  tags$input(type = "radio", name = "scenario_select_radio", value = "cf", id = "scenario_select_cf", checked = "checked")),
-              div(class = "data-cell", "< 1 hour"),
-              div(class = "data-cell", "< 25% of ED bed capacity")
+        class = "radio-buttons-column",
+        radioButtons(
+          "scenario_select",
+          label = NULL,
+          choices = list(
+            "Option 1" = "cf",
+            "Option 2" = "full_cf"
           ),
-          
-          # Second option
-          div(class = "table-radio-row",
-              div(class = "radio-cell", 
-                  tags$input(type = "radio", name = "scenario_select_radio", value = "full_cf", id = "scenario_select_full_cf")),
-              div(class = "data-cell", "0 hour"),
-              div(class = "data-cell", "0% of ED bed capacity")
+          selected = "cf"
+        )
+      ),
+      
+      # HTML table with content (but no radio buttons)
+      div(
+        class = "table-container",
+        tags$table(
+          class = "content-table",
+          # Table header
+          tags$thead(
+            tags$tr(
+              tags$th(class = "col-select", "Select"),
+              tags$th("Medical waits for admission"),
+              tags$th("Medical DTA Queue")
+            )
+          ),
+          # Table body
+          tags$tbody(
+            # First row
+            tags$tr(
+              id = "row-cf",
+              class = "content-row",
+              tags$td(class = "col-select", ""), # Empty cell for alignment
+              tags$td("< 1 hour"),
+              tags$td("< 25% of ED bed capacity")
+            ),
+            # Second row
+            tags$tr(
+              id = "row-full_cf",
+              class = "content-row",
+              tags$td(class = "col-select", ""), # Empty cell for alignment
+              tags$td("0 hour"),
+              tags$td("0% of ED bed capacity")
+            )
           )
         )
       ),
       
-      # Custom CSS for the table-style radio buttons
-      tags$style(HTML("
-        .table-radio-container {
-          display: table;
-          width: 100%;
-          border-collapse: collapse;
-          border: 1px solid #ddd;
-        }
-        
-        /* Header row styling */
-        .table-radio-header {
-          display: table-row;
-          font-weight: bold;
-          background-color: #f2f2f2;
-        }
-        .table-radio-header div {
-          display: table-cell;
-          padding: 10px 15px;
-          border-bottom: 2px solid #ddd;
-        }
-        
-        /* Set column widths */
-        .table-radio-header div:nth-child(1),
-        .radio-cell {
-          width: 80px;
-          text-align: center;
-        }
-        
-        /* Body rows styling */
-        .table-radio-body {
-          display: table-row-group;
-        }
-        .table-radio-row {
-          display: table-row;
-          cursor: pointer;
-        }
-        .table-radio-row:hover {
-          background-color: #f5f5f5;
-        }
-        .table-radio-row.active {
-          background-color: #e8f0fe;
-        }
-        .radio-cell, .data-cell {
-          display: table-cell;
-          padding: 10px 15px;
-          vertical-align: middle;
-          border-bottom: 1px solid #ddd;
-        }
-        .radio-cell input {
-          cursor: pointer;
-        }
-      ")),
-      
-      # JavaScript to handle row selection and update hidden input
+      # JavaScript to handle highlighting of the selected row
       tags$script(HTML("
-        $(document).ready(function() {
-          // Initial state - mark active row
-          updateActiveRow();
-          
-          // Click on row to select radio
-          $('.table-radio-row').click(function() {
-            $(this).find('input[type=\"radio\"]').prop('checked', true).trigger('change');
-            updateActiveRow();
-            Shiny.setInputValue('scenario_select', $(this).find('input[type=\"radio\"]').val());
-          });
-          
-          // Click on radio also updates active class
-          $('input[name=\"scenario_select\"]').change(function() {
-            updateActiveRow();
-            Shiny.setInputValue('scenario_select', $(this).val());
-          });
-          
-          function updateActiveRow() {
-            $('.table-radio-row').removeClass('active');
-            $('input[name=\"scenario_select\"]:checked').closest('.table-radio-row').addClass('active');
-          }
+      $(document).ready(function() {
+        // Function to update row highlighting
+        function updateRowHighlighting() {
+          var selectedValue = $('#scenario_select').val();
+          $('.content-row').removeClass('active');
+          $('#row-' + selectedValue).addClass('active');
+        }
+        
+        // Initial highlighting
+        updateRowHighlighting();
+        
+        // Update when radio button changes
+        $('#scenario_select input').on('change', function() {
+          updateRowHighlighting();
         });
-      ")),
+      });
+    ")),
+      
+      # CSS styling for the alignment and appearance
+      tags$style(HTML("
+/* Container for both elements */
+.radio-table-wrapper {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+/* Radio buttons column */
+.radio-buttons-column {
+  position: absolute;
+  top: 45px;
+  left: 5px;
+  z-index: 10;
+  width: 60px;
+}
+
+/* Override Shiny's radio button styling */
+.radio-buttons-column .radio {
+  margin: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 46px !important; /* Consistent height */
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.radio-buttons-column .radio label {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radio-buttons-column .radio span {
+  display: none; /* Hide the text */
+}
+
+/* Table container */
+.table-container {
+  margin-left: 0; /* No margin, we position the radio buttons absolutely */
+}
+
+/* Content table styling */
+.content-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #ddd;
+}
+
+.content-table th, .content-table td {
+  padding: 12px 15px !important;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+  height: 22px !important; /* Control cell height */
+}
+
+.content-table th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+}
+
+.col-select {
+  width: 60px; /* Match radio button width */
+}
+
+/* Row styling */
+.content-row:hover {
+  background-color: #f9f9f9;
+}
+
+.content-row.active {
+  background-color: #e8f0fe;
+}
+
+/* Adjust radio button container to match table rows better */
+.shiny-options-group {
+  position: relative;
+  top: 54px !important; /* Adjusted to center buttons better */
+  margin-top: 0 !important;
+}
+
+/* Fine-tune individual radio buttons for better vertical centering */
+.radio-buttons-column .radio:first-child {
+  margin-bottom: 15px !important; /* Push first button down slightly */
+}
+
+.radio-buttons-column .radio:last-child {
+  margin-top: 10px !important; /* Push second button up slightly */
+}
+    "))
     )
   ),
   div(
