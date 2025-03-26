@@ -1007,12 +1007,13 @@ server <- function(input, output) {
     
     HTML(glue::glue('
   <div style="display: flex; align-items: flex-start; width: 100%;">
-    <div style="width: 56%; display: flex; align-items: flex-start; justify-content: flex-end; padding-right: 10px;">
+    <div style="width: 15%; flex: none;"></div>
+    <div style="width: 41.67%; display: flex; align-items: flex-start; justify-content: flex-end; padding-right: 10px;">
       <span class="scenario-indicator" style="background-color: {app_colours["actual"]}; margin-right: 5px; margin-top: 4px;"></span>
       <span style="font-weight: 500; color: #333;"><strong>Actual</strong>: where admission waits were <strong>{dta_time} hours</strong> & the DTA queue was <strong>{dta_queue}</strong> of the bed capacity, on average</span>
     </div>
-    <div style="width: 5%; text-align: center; font-size: 24px; color: #666; font-weight: bold;">VS</div>
-    <div style="width: 34%; display: flex; align-items: flex-start; padding-left: 10px;">
+    <div style="width: 3.33%; text-align: center; font-size: 24px; color: #666; font-weight: bold;">VS</div>
+    <div style="width: 40%; display: flex; align-items: flex-start; padding-left: 10px;">
       <span class="scenario-indicator" style="background-color: {app_colours["hypothetical"]}; margin-right: 5px; margin-top: 4px;"></span>
       <span style="font-weight: 500; color: #333;"><strong>Hypothetical</strong>: If medical waits for admission & Decision to Admit (DTA) queue were kept <strong>under 1 hour</strong> and <strong>25%</strong> of ED bed capacity</span>
     </div>
