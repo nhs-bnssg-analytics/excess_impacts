@@ -167,25 +167,25 @@ html, body, .bslib-page-fill {
   z-index: 1000;
 }
 
-/* Scenario styling */
-.scenario-grid {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  width: 100%;
-  min-height: 60px;
-  padding: 0 10px;
-  align-items: center;
-  white-space: normal;
-  overflow: visible !important;
-}
-
-.scenario-header {
-  display: flex;
-  align-items: center;
-  padding: 5px 0;
-  overflow: visible !important;
-  min-height: 60px;
-}
+/* Updated scenario grid styling */
+  .scenario-grid {
+    display: grid;
+    grid-template-columns: 5fr 4fr 3fr;
+    width: 100%;
+    min-height: 60px;
+    padding: 0 10px;
+    align-items: center;
+    white-space: normal;
+    overflow: visible !important;
+  }
+  
+  .scenario-vs {
+    text-align: center;
+    font-size: 24px;
+    color: #666;
+    font-weight: bold;
+    margin: 0;
+  }
 
 .scenario-label {
   display: flex;
@@ -604,7 +604,7 @@ html, body, .bslib-page-fill {
   # Main layout - 3 columns
   layout_columns(
     height = NULL,
-      col_widths = c(4, 4, 4),
+      col_widths = c(5, 4, 3),
     gap = "0px",
     class = "layout-column-no-gap flex-fill", 
       style = "overflow: hidden !important;",
@@ -1006,14 +1006,14 @@ server <- function(input, output) {
     dta_queue <- n_dta_norm()
     
     HTML(glue::glue('
-  <div class="scenario-grid">
-    <div style="display: flex; align-items: center; justify-content: flex-end; padding-right: 20px;">
-      <span class="scenario-indicator" style="background-color: {app_colours["actual"]};"></span>
+  <div style="display: flex; align-items: flex-start; width: 100%;">
+    <div style="width: 56%; display: flex; align-items: flex-start; justify-content: flex-end; padding-right: 10px;">
+      <span class="scenario-indicator" style="background-color: {app_colours["actual"]}; margin-right: 5px; margin-top: 4px;"></span>
       <span style="font-weight: 500; color: #333;"><strong>Actual</strong>: where admission waits were <strong>{dta_time} hours</strong> & the DTA queue was <strong>{dta_queue}</strong> of the bed capacity, on average</span>
     </div>
-    <div style="margin: 0 15px; font-size: 24px; color: #666; font-weight: bold;">VS</div>
-    <div style="display: flex; align-items: center; padding-left: 20px;">
-      <span class="scenario-indicator" style="background-color: {app_colours["hypothetical"]};"></span>
+    <div style="width: 5%; text-align: center; font-size: 24px; color: #666; font-weight: bold;">VS</div>
+    <div style="width: 34%; display: flex; align-items: flex-start; padding-left: 10px;">
+      <span class="scenario-indicator" style="background-color: {app_colours["hypothetical"]}; margin-right: 5px; margin-top: 4px;"></span>
       <span style="font-weight: 500; color: #333;"><strong>Hypothetical</strong>: If medical waits for admission & Decision to Admit (DTA) queue were kept <strong>under 1 hour</strong> and <strong>25%</strong> of ED bed capacity</span>
     </div>
   </div>
