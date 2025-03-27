@@ -4,9 +4,13 @@ library(RMySQL)
 require(lubridate)
 library(tidymodels)
 
-# upstream data
-con_string <- "driver={SQL Server};\n  server=Xsw-00-ash01;\n  trusted_connection=true"
-con<-odbcDriverConnect(con_string)
+con <- switch(.Platform$OS.type,
+              windows = RODBC::odbcConnect(dsn = "xsw"),
+              unix = {"/root/sql/sql_connect_string_linux" |>
+                  readr::read_lines() |>
+                  RODBC::odbcDriverConnect()}
+)
+
 
 report_end <- today() - ddays(7)
 report_start <- report_end - ddays(6)
