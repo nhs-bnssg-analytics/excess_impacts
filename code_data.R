@@ -1,5 +1,6 @@
 require(tidyverse)
 require(RODBC)
+library(RMySQL)
 require(lubridate)
 library(tidymodels)
 
@@ -1173,6 +1174,26 @@ out <- get_impact_data(report_start = report_start,
 out_2 <- get_impact_data(report_start = report_start - ddays(7),
                          report_end = report_end - ddays(7))
 
+
+# Write to MYSQL
+
+
+# Connection details
+host <- "bns-000-as02" 
+user <- Sys.getenv("db_user")
+password <- Sys.getenv("db_pw")
+dbname <- "ics_db"
+port <- 3306 # Default MySQL port (change if needed)
+
+# Create the connection
+con <- dbConnect(MySQL(),
+                 host = host,
+                 user = user,
+                 password = password,
+                 dbname = dbname,
+                 port = port)
+
+dbWriteTable(con, "excess_impacts", value = bind_rows(out, out_2), overwrite = TRUE)
 
 saveRDS(bind_rows(out, out_2), "data/avoidable_impacts_output.RDS")
 
