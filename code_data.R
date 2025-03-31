@@ -1180,13 +1180,11 @@ out_2 <- get_impact_data(report_start = report_start - ddays(7),
 
 
 # Write to MYSQL
-
-
 # Connection details
-host <- "bns-000-as02" 
-user <- Sys.getenv("db_user")
-password <- Sys.getenv("db_pw")
-dbname <- "ics_db"
+host <- Sys.getenv("DB_HOST")
+dbname <- Sys.getenv("DB_NAME")
+user <- Sys.getenv("DB_USER")
+password <- Sys.getenv("DB_CRED")
 port <- 3306 # Default MySQL port (change if needed)
 
 # Create the connection
@@ -1197,8 +1195,11 @@ con <- dbConnect(MySQL(),
                  dbname = dbname,
                  port = port)
 
+# delete old data
+query_delete <- str_c("DELETE FROM excess_impacts")
+DBI::dbGetQuery(con, query_delete)
 dbWriteTable(con, "excess_impacts", value = bind_rows(out, out_2), overwrite = TRUE)
 
-saveRDS(bind_rows(out, out_2), "data/avoidable_impacts_output.RDS")
+# saveRDS(bind_rows(out, out_2), "data/avoidable_impacts_output.RDS")
 
 
