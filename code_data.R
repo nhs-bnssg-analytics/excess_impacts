@@ -1188,12 +1188,12 @@ password <- Sys.getenv("DB_CRED")
 port <- 3306 # Default MySQL port (change if needed)
 
 # Create the connection
-con <- dbConnect(MySQL(),
-                 host = host,
-                 user = user,
-                 password = password,
-                 dbname = dbname,
-                 port = port)
+conn <- dbConnect(dbDriver("MySQL"),
+                  dbname = dbname,
+                  host = host,
+                  port = 3306,
+                  user = user,
+                  password=password)
 
 # delete old data
 query_delete <- str_c("DELETE FROM excess_impacts")
