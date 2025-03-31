@@ -1197,8 +1197,8 @@ conn <- dbConnect(dbDriver("MySQL"),
 
 # delete old data
 query_delete <- str_c("DELETE FROM excess_impacts")
-DBI::dbGetQuery(con, query_delete)
-dbWriteTable(con, "excess_impacts", value = bind_rows(out, out_2), overwrite = TRUE)
+DBI::dbGetQuery(conn, query_delete)
+dbWriteTable(conn, "excess_impacts", value = bind_rows(out, out_2), overwrite = TRUE)
 
 # saveRDS(bind_rows(out, out_2), "data/avoidable_impacts_output.RDS")
 
