@@ -1,4 +1,5 @@
-library(tidyverse)
+library(dplyr)
+library(ggplot2)
 library(shiny)
 library(bslib)
 library(ggtext)
