@@ -2,6 +2,70 @@ library(tidyverse)
 library(shiny)
 library(bslib)
 library(ggtext)
+library(RMySQL)
+
+
+app_colours <- c(
+  actual = "#88a0a8",     # Purple for actual data
+  hypothetical = "#B4CEB3" # Grey-green for hypothetical scenario
+)
+
+gen_html_text <- function(emph_text){
+  str_c("<span style='font-weight:bold;font-size:30pt;'>",
+        emph_text,
+        # "</span><br><span style='font-size:15pt'>",
+        # sub_text,
+        "</span>")
+}
+
+
+# Write to MYSQL
+# Connection details
+host <- Sys.getenv("DB_HOST")
+dbname <- Sys.getenv("DB_NAME")
+user <- Sys.getenv("DB_USER")
+password <- Sys.getenv("DB_CRED")
+port <- 3306 # Default MySQL port (change if needed)
+
+# Create the connection
+conn <- dbConnect(dbDriver("MySQL"),
+                  dbname = dbname,
+                  host = host,
+                  port = 3306,
+                  user = user,
+                  password=password)
+
+
+impacts_output_raw  <- DBI::dbGetQuery(conn, "select * from excess_impacts") %>%
+  mutate(grp = recode(grp,
+                      "System total" = "BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)",
+                      "WESTON GENERAL HOSPITAL" = "WGH", 
+                      "SOUTHMEAD HOSPITAL" = "NBT", 
+                      "BRISTOL ROYAL INFIRMARY" = "BRI", 
+                      "cat1" = "(Category 1)",
+                      "cat2" = "(Category 2)",
+                      "cat3" = "(Category 3)"
+  )) %>%
+  mutate(
+    scenario = case_when(
+      str_detect(impact, r"((?<!full_)cf)") | str_detect(impact, r"((?<!full_)raw)")~ "cf",
+      str_detect(impact, "full_cf") | str_detect(impact, "full_raw") ~ "full_cf",
+      str_detect(impact, r"(impact(?!_cf))") ~ "actual",
+      .default = "n/a"
+    ),
+    sub_text = case_when(
+      str_detect(impact, "om6_impact") ~ str_c(sub_text, "*"),
+      str_detect(impact, "om4_impact") ~ str_c(sub_text, "*"),
+      str_detect(impact, "om2_impact") ~ str_c(sub_text, "**"),
+      str_detect(impact, "om1[abc]_impact") ~ str_c(sub_text, "**")
+    )) %>%
+  mutate(impact = str_remove(impact, "_full")) %>%
+  mutate(value_label = gen_html_text(emph_text)) 
+
+
+# Store max report date as a static value
+max_report_date <- max(impacts_output_raw$report_date)
+
 
 ui <- page_sidebar(
   tags$head(
@@ -736,49 +800,6 @@ html, body, .bslib-page-fill {
 )
 
 server <- function(input, output) {
-  
-  app_colours <- c(
-    actual = "#88a0a8",     # Purple for actual data
-    hypothetical = "#B4CEB3" # Grey-green for hypothetical scenario
-  )
-
-  gen_html_text <- function(emph_text){
-    str_c("<span style='font-weight:bold;font-size:30pt;'>",
-                        emph_text,
-                        # "</span><br><span style='font-size:15pt'>",
-                        # sub_text,
-                        "</span>")
-    }
-  
-  impacts_output_raw <- readRDS("../data/avoidable_impacts_output.RDS") %>%
-    mutate(grp = recode(grp,
-                        "System total" = "BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)",
-                        "WESTON GENERAL HOSPITAL" = "WGH", 
-                        "SOUTHMEAD HOSPITAL" = "NBT", 
-                        "BRISTOL ROYAL INFIRMARY" = "BRI", 
-                        "cat1" = "(Category 1)",
-                        "cat2" = "(Category 2)",
-                        "cat3" = "(Category 3)"
-    )) %>%
-    mutate(
-      scenario = case_when(
-        str_detect(impact, r"((?<!full_)cf)") | str_detect(impact, r"((?<!full_)raw)")~ "cf",
-        str_detect(impact, "full_cf") | str_detect(impact, "full_raw") ~ "full_cf",
-        str_detect(impact, r"(impact(?!_cf))") ~ "actual",
-        .default = "n/a"
-      ),
-      sub_text = case_when(
-      str_detect(impact, "om6_impact") ~ str_c(sub_text, "*"),
-      str_detect(impact, "om4_impact") ~ str_c(sub_text, "*"),
-      str_detect(impact, "om2_impact") ~ str_c(sub_text, "**"),
-      str_detect(impact, "om1[abc]_impact") ~ str_c(sub_text, "**")
-      )) %>%
-    mutate(impact = str_remove(impact, "_full")) %>%
-    mutate(value_label = gen_html_text(emph_text)) 
-  
-  
-  # Store max report date as a static value
-  max_report_date <- max(impacts_output_raw$report_date)
   
   # Create a reactive expression for the filtered data
   filtered_data <- reactive({
