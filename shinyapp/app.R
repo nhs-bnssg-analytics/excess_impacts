@@ -1,6 +1,9 @@
 library(dplyr)
+library(tidyr)
+library(glue)
 library(stringr)
 library(ggplot2)
+library(lubridate)
 library(shiny)
 library(bslib)
 library(ggtext)
@@ -39,6 +42,7 @@ conn <- dbConnect(dbDriver("MySQL"),
 
 
 impacts_output_raw  <- DBI::dbGetQuery(conn, "select * from excess_impacts") %>%
+  mutate(report_date = ymd(report_date)) %>%
   mutate(grp = recode(grp,
                       "System total" = "BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)",
                       "WESTON GENERAL HOSPITAL" = "WGH", 
