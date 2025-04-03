@@ -1,10 +1,9 @@
 library(dplyr)
-library(tidyr)
-library(glue)
 library(stringr)
 library(ggplot2)
-library(lubridate)
 library(shiny)
+library(tidyr)
+library(lubridate)
 library(bslib)
 library(ggtext)
 library(RMySQL)
@@ -40,6 +39,8 @@ conn <- dbConnect(dbDriver("MySQL"),
                   user = user,
                   password=password)
 
+on.exit(dbDisconnect(conn))
+
 
 impacts_output_raw  <- DBI::dbGetQuery(conn, "select * from excess_impacts") %>%
   mutate(report_date = ymd(report_date)) %>%
@@ -72,8 +73,14 @@ impacts_output_raw  <- DBI::dbGetQuery(conn, "select * from excess_impacts") %>%
 # Store max report date as a static value
 max_report_date <- max(impacts_output_raw$report_date)
 
+static_report_date_line <- HTML(glue::glue(
+  "<span><h5><strong>Excess Impacts:</strong> a what-if analysis based on data from <strong> {format(max_report_date, '%d %B %Y')}</strong></span></h5>"
+))
+
+
 
 ui <- page_sidebar(
+  
   tags$head(
     tags$style("
   /* Main page and container settings */
@@ -91,8 +98,7 @@ html, body, .bslib-page-fill {
 
 .main-content-container {
   padding: 10px 20px !important;
-  height: calc(100vh - 20px) !important;
-  max-height: calc(100vh - 20px) !important;
+  /* height: 100vh !important;  */
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
@@ -265,8 +271,8 @@ html, body, .bslib-page-fill {
 }
 
 .scenario-indicator {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   margin-right: 8px;
   border-radius: 3px;
 }
@@ -444,13 +450,19 @@ html, body, .bslib-page-fill {
   style = "height: 100vh; max-height: 100vh; overflow: hidden;",
   
   sidebar = sidebar(
+    id = "sidebar",
     bg = "#f8f9fa",
     width = "500px",
     open = FALSE,
     padding = "15px",
     style = "border-right: 1px solid #e9ecef;",
     
-    uiOutput("report_date"),
+    div(
+      id = "report_date",
+      HTML(glue::glue(
+        "<span><h4><strong>Excess Impacts</strong> </br> A what-if analysis</h4> Based on data from </br> <strong> {format(max_report_date, '%d %B %Y')}</strong></span>"
+      ))
+    ),
     
     div(
       style = "margin-top: 20px;",
@@ -624,7 +636,7 @@ html, body, .bslib-page-fill {
 
 /* Fine-tune individual radio buttons for better vertical centering */
 .radio-buttons-column .radio:first-child {
-  margin-bottom: 15px !important; /* Push first button down slightly */
+  margin-bottom: 10px !important; /* Push first button down slightly */
 }
 
 .radio-buttons-column .radio:last-child {
@@ -644,36 +656,41 @@ html, body, .bslib-page-fill {
   ),
   div(
     class = "main-content-container",  
+    
+      # Only show main heading when sidebar is closed
+      conditionalPanel(
+        condition = "input.sidebar !== true",
+        div(
+          id = "main_heading",
+          class = "main-heading",
+          uiOutput("report_date_line")
+        )
+      ),
+    
   # Top heading paragraph
   card(
     full_screen = FALSE,
-    height = "auto",
+    height = "120px",
     class = "no-border-no-pad header-card",
-    style = "overflow: hidden !important; margin-bottom: 10px; min-height: 80px;",
+    style = "overflow: visible !important; margin-bottom: 20px; flex-shrink: 0;",
     gap = "0px",
     uiOutput("header")
   ),
 
   # Scenario descriptions - centered VS version
-  layout_columns(
-    height = "auto",
-    col_widths = c(12),
-    gap = "0px",
-    style = "overflow: hidden !important;",
-    card(
-      full_screen = FALSE,
-      height = "auto",
-      class = "no-border-no-pad",
-      style = "overflow: visible !important; margin-bottom: 10px;",
-      div(
-        class = "scenario-header",
-        uiOutput("scenario_text")
-      )
+  card(
+    full_screen = FALSE,
+    height = "120px",
+    class = "no-border-no-pad",
+    style = "overflow: visible !important; margin-bottom: 20px; flex-shrink: 0;",
+    div(
+      class = "scenario-header",
+      uiOutput("scenario_text")
     )
   ),
   # Main layout - 3 columns
   layout_columns(
-    height = NULL,
+    height = "calc(100vh - 340px)",
       col_widths = c(5, 4, 3),
     gap = "0px",
     class = "layout-column-no-gap flex-fill", 
@@ -689,7 +706,7 @@ html, body, .bslib-page-fill {
       # Left card 1
       card(
         class = "no-border-no-pad-text-center",
-        height = "23%",
+        height = "18%",
         style = "margin-bottom: 8px;",
         # Small gap between inner cards
         card_body(
@@ -702,7 +719,7 @@ html, body, .bslib-page-fill {
       # Left card 2
       card(
         class = "no-border-no-pad-text-center",
-        height = "23%",
+        height = "18%",
         style = "margin-bottom: 8px;",
         # Small gap between inner cards
         card_body(
@@ -715,7 +732,7 @@ html, body, .bslib-page-fill {
       # Left card 3
       card(
         class = "no-border-no-pad-text-center",
-        height = "23%",
+        height = "18%",
         style = "margin-bottom: 8px;",
         # Small gap between inner cards
         card_body(
@@ -729,7 +746,7 @@ html, body, .bslib-page-fill {
       # Left card 4
       card(
         class = "no-border-no-pad-text-center",
-        height = "23%",
+        height = "18%",
         card_body(
           style = "padding: 10px;",
           # Reduce internal padding but keep some for readability
@@ -760,7 +777,7 @@ html, body, .bslib-page-fill {
             card(
               class = "no-border-no-pad",
               # style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
-              height = "23%",
+              height = "18%",
               card_body(plotOutput("chart1", height = "100%"))
             ),
             
@@ -768,7 +785,7 @@ html, body, .bslib-page-fill {
             card(
               class = "no-border-no-pad",
               # style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
-              height = "23%",
+              height = "18%",
               card_body(plotOutput("chart2", height = "100%"))
             ),
             
@@ -776,7 +793,7 @@ html, body, .bslib-page-fill {
             card(
               class = "no-border-no-pad",
               # style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
-              height = "23%",
+              height = "18%",
               card_body(plotOutput("chart3", height = "100%"))
             ),
             
@@ -784,7 +801,7 @@ html, body, .bslib-page-fill {
             card(
               class = "no-border-no-pad",
               # style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
-              height = "23%",
+              height = "18%",
               card_body(plotOutput("chart4", height = "100%"))
             )
           )
@@ -1000,11 +1017,14 @@ server <- function(input, output) {
       labs(caption = data$sub_text[1], y = "", x = "")
   }
   
-  # Render UI outputs with proper isolation 
+  
+  # Use the pre-rendered UI in your output
   output$report_date <- renderUI({
-    HTML(glue::glue(
-      "<span><h4><strong>Excess Impacts</strong> </br> A what-if analysis</h4> Based on data from </br> <strong> {format(max_report_date, '%d %B %Y')}</strong></span>"
-    ))
+    static_report_date
+  })
+  
+  output$report_date_line <- renderUI({
+    static_report_date_line
   })
   
   output$header <- renderUI({
@@ -1018,9 +1038,9 @@ server <- function(input, output) {
                         "WGH" = "the emergency department at WGH")
     
     h5(
-      style = "line-height: 1.4; font-size: 18px; margin: 0;",
+      style = "line-height: 1.5; margin: 0;",  # Increased line-height from 1.4 to 1.5
       HTML(glue::glue(
-        "<p style='margin: 5px 0;'><span class='secondary-text' style='font-size: 14px;'>Over the last <b>7 days</b>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
+        "<p style='margin: 5px 0; max-height: none;'><span class='secondary-text' style='font-size: 24px;'>Over the last <b>7 days</b>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
       ))
     )
   })
@@ -1100,7 +1120,6 @@ server <- function(input, output) {
   output$chart4 <- renderPlot({
     create_plot(handover_chart_data())
   }) %>% bindCache(input$scenario_select, input$grp_select)
-  
   
 }
 
