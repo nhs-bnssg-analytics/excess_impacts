@@ -10,8 +10,8 @@ library(RMySQL)
 
 
 app_colours <- c(
-  actual = "#88a0a8",     # Purple for actual data
-  hypothetical = "#B4CEB3" # Grey-green for hypothetical scenario
+  actual = "#88a0a8",     # actual
+  hypothetical = "#B4CEB3" # hypothetical
 )
 
 gen_html_text <- function(emph_text){
@@ -74,7 +74,8 @@ impacts_output_raw  <- DBI::dbGetQuery(conn, "select * from excess_impacts") %>%
 max_report_date <- max(impacts_output_raw$report_date)
 
 static_report_date_line <- HTML(glue::glue(
-  "<span><h5><strong>Excess Impacts:</strong> a what-if analysis based on data from <strong> {format(max_report_date, '%d %B %Y')}</strong></span></h5>"
+  # "<span><h5><strong>Excess Impacts:</strong> a what-if analysis based on the week <strong>{format(max_report_date-ddays(7), '%d')}-{format(max_report_date, '%d %B %Y')}</strong></span></h5>"
+  "<span style='line-height: 1'><h5><strong>Excess Impacts:</strong> a what-if analysis</h5></span>"
 ))
 
 
@@ -460,7 +461,8 @@ html, body, .bslib-page-fill {
     div(
       id = "report_date",
       HTML(glue::glue(
-        "<span><h4><strong>Excess Impacts</strong> </br> A what-if analysis</h4> Based on data from </br> <strong> {format(max_report_date, '%d %B %Y')}</strong></span>"
+        # "<span><h4><strong>Excess Impacts</strong> </br> A what-if analysis</h4> Based on the week </br> <strong> {format(max_report_date-ddays(7), '%d')}-{format(max_report_date, '%d %B %Y')}</strong></span>"
+        "<span><h4><strong>Excess Impacts</strong> </br> A what-if analysis</h4></span>"
       ))
     ),
     
@@ -670,7 +672,7 @@ html, body, .bslib-page-fill {
   # Top heading paragraph
   card(
     full_screen = FALSE,
-    height = "120px",
+    height = "110px",
     class = "no-border-no-pad header-card",
     style = "overflow: visible !important; margin-bottom: 20px; flex-shrink: 0;",
     gap = "0px",
@@ -680,7 +682,7 @@ html, body, .bslib-page-fill {
   # Scenario descriptions - centered VS version
   card(
     full_screen = FALSE,
-    height = "120px",
+    height = "100px",
     class = "no-border-no-pad",
     style = "overflow: visible !important; margin-bottom: 20px; flex-shrink: 0;",
     div(
@@ -690,7 +692,7 @@ html, body, .bslib-page-fill {
   ),
   # Main layout - 3 columns
   layout_columns(
-    height = "calc(100vh - 340px)",
+    height = "calc(100vh - 300px)",
       col_widths = c(5, 4, 3),
     gap = "0px",
     class = "layout-column-no-gap flex-fill", 
@@ -706,7 +708,7 @@ html, body, .bslib-page-fill {
       # Left card 1
       card(
         class = "no-border-no-pad-text-center",
-        height = "18%",
+        height = "20%",
         style = "margin-bottom: 8px;",
         # Small gap between inner cards
         card_body(
@@ -719,7 +721,7 @@ html, body, .bslib-page-fill {
       # Left card 2
       card(
         class = "no-border-no-pad-text-center",
-        height = "18%",
+        height = "20%",
         style = "margin-bottom: 8px;",
         # Small gap between inner cards
         card_body(
@@ -732,7 +734,7 @@ html, body, .bslib-page-fill {
       # Left card 3
       card(
         class = "no-border-no-pad-text-center",
-        height = "18%",
+        height = "20%",
         style = "margin-bottom: 8px;",
         # Small gap between inner cards
         card_body(
@@ -746,9 +748,9 @@ html, body, .bslib-page-fill {
       # Left card 4
       card(
         class = "no-border-no-pad-text-center",
-        height = "18%",
+        height = "20%",
         card_body(
-          style = "padding: 10px;",
+          style = "padding: 10px;overflow-y: hidden !important;",
           # Reduce internal padding but keep some for readability
           uiOutput("handover_subtext")
         )
@@ -777,7 +779,7 @@ html, body, .bslib-page-fill {
             card(
               class = "no-border-no-pad",
               # style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
-              height = "18%",
+              height = "20%",
               card_body(plotOutput("chart1", height = "100%"))
             ),
             
@@ -785,7 +787,7 @@ html, body, .bslib-page-fill {
             card(
               class = "no-border-no-pad",
               # style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
-              height = "18%",
+              height = "20%",
               card_body(plotOutput("chart2", height = "100%"))
             ),
             
@@ -793,7 +795,7 @@ html, body, .bslib-page-fill {
             card(
               class = "no-border-no-pad",
               # style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
-              height = "18%",
+              height = "20%",
               card_body(plotOutput("chart3", height = "100%"))
             ),
             
@@ -801,7 +803,7 @@ html, body, .bslib-page-fill {
             card(
               class = "no-border-no-pad",
               # style = "padding: 0px !important;border-top: none !important;border-left: none !important;border-right: none !important; border-bottom: 3px solid #dee2e6 !important;box-shadow: none !important;--bs-card-spacer-y: 0 !important;",
-              height = "18%",
+              height = "20%",
               card_body(plotOutput("chart4", height = "100%"))
             )
           )
@@ -1040,7 +1042,7 @@ server <- function(input, output) {
     h5(
       style = "line-height: 1.5; margin: 0;",  # Increased line-height from 1.4 to 1.5
       HTML(glue::glue(
-        "<p style='margin: 5px 0; max-height: none;'><span class='secondary-text' style='font-size: 24px;'>Over the last <b>7 days</b>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
+        "<p style='margin: 5px 0; max-height: none;'><span class='secondary-text' style='font-size: 24px;'><strong>Between {format(max_report_date-ddays(7), '%d')}-{format(max_report_date, '%d %B %Y')}</strong>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
       ))
     )
   })
