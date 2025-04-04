@@ -136,11 +136,24 @@ html, body, .bslib-page-fill {
   margin: 0 !important;
   border: none !important;
   box-shadow: none !important;
-  display: grid;
-  place-items: center start;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important; /* Vertical centering */
   height: 100%;
   --bs-card-spacer-y: 0 !important;
   --bs-card-spacer-x: 0 !important;
+}
+
+.no-border-no-pad-text-center .card-body {
+  display: flex !important;
+  align-items: center !important; /* Vertical centering */
+  justify-content: flex-start !important;
+  height: 100% !important;
+  padding: 10px !important;
+}
+
+.no-border-no-pad-text-center p {
+  margin: 0 !important;
 }
 
 .header-card {
@@ -441,6 +454,12 @@ html, body, .bslib-page-fill {
   padding-top: 0 !important;
   margin-top: 0 !important;
 }
+.app-standard-text {
+  font-size: 16px !important; /* Choose your preferred size */
+  line-height: 1.5 !important;
+  margin: 5px 0 !important;
+  font-weight: 400 !important;
+}
   "),
     tags$script(HTML("
       $(document).ready(function() {
@@ -712,56 +731,47 @@ html, body, .bslib-page-fill {
     layout_column_wrap(
       width = 1,
       height = "100%",
-      # class = "no-border-no-pad-text-center",
-      # style = "padding: 0;",
       
       # Left card 1
       card(
-        class = "no-border-no-pad-text-center",
+        class = "no-border-no-pad",
         height = "20%",
-        style = "margin-bottom: 8px;",
-        # Small gap between inner cards
+        style = "display: flex; align-items: center; justify-content: flex-start; padding: 0;",
         card_body(
-          style = "padding: 10px;",
-          # Reduce internal padding but keep some for readability
+          style = "width: 100%; height: 100%; display: flex; align-items: center; padding: 10px;",
           uiOutput("mort_subtext")
         )
       ),
       
       # Left card 2
       card(
-        class = "no-border-no-pad-text-center",
+        class = "no-border-no-pad",
         height = "20%",
-        style = "margin-bottom: 8px;",
-        # Small gap between inner cards
+        style = "display: flex; align-items: center; justify-content: flex-start; padding: 0;",
         card_body(
-          style = "padding: 10px;",
-          # Reduce internal padding but keep some for readability
+          style = "width: 100%; height: 100%; display: flex; align-items: center; padding: 10px;",
           uiOutput("los_subtext")
         )
       ),
       
       # Left card 3
       card(
-        class = "no-border-no-pad-text-center",
+        class = "no-border-no-pad",
         height = "20%",
-        style = "margin-bottom: 8px;",
-        # Small gap between inner cards
+        style = "display: flex; align-items: center; justify-content: flex-start; padding: 0;",
         card_body(
-          style = "padding: 10px;",
-          # Reduce internal padding but keep some for readability
+          style = "width: 100%; height: 100%; display: flex; align-items: center; padding: 10px;",
           uiOutput("resp_subtext")
-          
         )
       ),
       
       # Left card 4
       card(
-        class = "no-border-no-pad-text-center",
+        class = "no-border-no-pad",
         height = "20%",
+        style = "display: flex; align-items: center; justify-content: flex-start; padding: 0;",
         card_body(
-          style = "padding: 10px;overflow-y: hidden !important;",
-          # Reduce internal padding but keep some for readability
+          style = "width: 100%; height: 100%; display: flex; align-items: center; padding: 10px;",
           uiOutput("handover_subtext")
         )
       )
@@ -1014,7 +1024,7 @@ server <- function(input, output) {
       ggfx::with_outer_glow(geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
                         colour = "white", x_offset = 0, y_offset = 0, expand = 12.5, sigma = 0) +
       theme_void() +
-      scale_y_continuous(expand = expansion(mult = c(0, 0.4))) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.5))) +
       scale_fill_manual(values = unname(app_colours)) +
       theme(legend.position = "off",
             plot.margin = margin(0, 0, 0, 0, "pt"),
@@ -1052,7 +1062,7 @@ server <- function(input, output) {
     h5(
       style = "line-height: 1.5; margin: 0;",  # Increased line-height from 1.4 to 1.5
       HTML(glue::glue(
-        "<p style='margin: 5px 0; max-height: none;'><span class='secondary-text' style='font-size: 24px;'><strong>Between {format(max_report_date-ddays(7), '%d')}-{format(max_report_date, '%d %B %Y')}</strong>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
+        "<p class='app-standard-text' style='margin: 5px 0; max-height: none;'><span><strong>Between {format(max_report_date-ddays(7), '%d')}-{format(max_report_date, '%d %B %Y')}</strong>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
       ))
     )
   })
@@ -1085,7 +1095,7 @@ server <- function(input, output) {
     req(excess_mort(), n_admits())
     
     HTML(
-      glue::glue("<p><strong>Due to delays for their admission</strong>, we estimate there will be <strong>{excess_mort()} avoidable deaths</strong> in the cohort of emergency Medical admissions from the <strong>last 7 days</strong>.</p>"
+      glue::glue("<p class='app-standard-text style='margin: 0;'><strong>Due to delays for their admission</strong>, we estimate there will be <strong>{excess_mort()} avoidable deaths</strong> in the cohort of emergency Medical admissions from the <strong>last 7 days</strong>.</p>"
       )
     )
   })
@@ -1094,7 +1104,7 @@ server <- function(input, output) {
     req(n_admits(), excess_los())
     
     HTML(
-      glue::glue("<p>The <strong>{n_admits()}</strong> Medical admits from the <strong>last 7 days</strong> will have an estimated <strong>excess {excess_los()} days of length of stay</strong> combinded, <strong>due to their delays for admission</strong>. This is equivalent to <strong>{excess_los()/7} excess Medical beds occupied per day.</p>"
+      glue::glue("<p class='app-standard-text style='margin: 0;'>The <strong>{n_admits()}</strong> Medical admits from the <strong>last 7 days</strong> will have an estimated <strong>excess {excess_los()} days of length of stay</strong> combined, <strong>due to their delays for admission</strong>. This is equivalent to <strong>{excess_los()/7} excess Medical beds occupied per day.</p>"
       )
     )
   })
@@ -1102,7 +1112,7 @@ server <- function(input, output) {
   output$resp_subtext <- renderUI({
     req(n_resp(), excess_resp(), resp_target())
     HTML(
-      glue::glue("<p>The <strong>{n_resp()}</strong> Catergory 2 ambulance responses over the <strong>last 7 days</strong> had an <strong>excess {excess_resp()} hours response time</strong> combinded, <strong>due to the medical DTA queue</strong>. The impact of this excess on meeting the <strong>national target (dashed-line)</strong> that <strong>90% of responses are within {resp_target()} minutes</strong> can be seen in the chart."
+      glue::glue("<p class='app-standard-text style='margin: 0;'>The <strong>{n_resp()}</strong> Catergory 2 ambulance responses over the <strong>last 7 days</strong> had an <strong>excess {excess_resp()} hours response time</strong> combined, <strong>due to the medical DTA queue</strong>. The impact of this excess on meeting the <strong>national target (dashed-line)</strong> that <strong>90% of responses are within {resp_target()} minutes</strong> can be seen in the chart."
       )
     )
   })
@@ -1111,7 +1121,7 @@ server <- function(input, output) {
     req(n_handover(), excess_handover(), handover_target(), n_amb())
     
     HTML(
-      glue::glue("<p>The <strong>{n_handover()}</strong> ambulance handovers over the <strong>last 7 days</strong> had an <strong>excess {excess_handover()} hours handover time</strong> combinded, <strong>due to the medical DTA queue</strong>. This excess delay is <strong>equivalent to {n_amb()} ambulances being out of service througout the last 7 days</strong>. The impact of this excess on meeting the <strong>national target (dashed-line)</strong> that <strong>90% of handovers are within {handover_target()} minutes</strong> can be seen in the chart."
+      glue::glue("<p class='app-standard-text style='margin: 0;'>The <strong>{n_handover()}</strong> ambulance handovers over the <strong>last 7 days</strong> had an <strong>excess {excess_handover()} hours handover time</strong> combined, <strong>due to the medical DTA queue</strong>. This excess delay is <strong>equivalent to {n_amb()} ambulances being out of service througout the last 7 days</strong>. The impact of this excess on meeting the <strong>national target (dashed-line)</strong> that <strong>90% of handovers are within {handover_target()} minutes</strong> can be seen in the chart."
       )
     )
   })
