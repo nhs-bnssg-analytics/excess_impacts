@@ -98,7 +98,7 @@ html, body, .bslib-page-fill {
 }
 
 .main-content-container {
-  padding: 10px 20px !important;
+  padding: 5px 20px !important;
   /* height: 100vh !important;  */
   display: flex !important;
   flex-direction: column !important;
@@ -145,7 +145,7 @@ html, body, .bslib-page-fill {
 
 .header-card {
   margin-bottom: 5px !important;
-  min-height: 60px !important;
+  min-height: 50px !important;
 }
 
 /* Layout utilities */
@@ -431,6 +431,16 @@ html, body, .bslib-page-fill {
 .radio-buttons-column .radio:last-child {
   margin-top: 10px !important;
 }
+/* Add these if not already covered */
+.bslib-gap-spacing {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+.html-fill-container {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
   "),
     tags$script(HTML("
       $(document).ready(function() {
@@ -657,7 +667,7 @@ html, body, .bslib-page-fill {
 
   ),
   div(
-    class = "main-content-container",  
+    class = "main-content-container",
     
       # Only show main heading when sidebar is closed
       conditionalPanel(
@@ -672,7 +682,7 @@ html, body, .bslib-page-fill {
   # Top heading paragraph
   card(
     full_screen = FALSE,
-    height = "110px",
+    height = "100px",
     class = "no-border-no-pad header-card",
     style = "overflow: visible !important; margin-bottom: 20px; flex-shrink: 0;",
     gap = "0px",
@@ -692,7 +702,7 @@ html, body, .bslib-page-fill {
   ),
   # Main layout - 3 columns
   layout_columns(
-    height = "calc(100vh - 300px)",
+    height = "calc(100vh - 250px)",
       col_widths = c(5, 4, 3),
     gap = "0px",
     class = "layout-column-no-gap flex-fill", 
