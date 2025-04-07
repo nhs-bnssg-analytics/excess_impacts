@@ -8,6 +8,8 @@ library(bslib)
 library(ggtext)
 library(RMySQL)
 
+# Helper function to replace %||% operator
+`%||%` <- function(x, y) if (is.null(x)) y else x
 
 app_colours <- c(
   actual = "#88a0a8",     # actual
@@ -509,190 +511,8 @@ sidebar = sidebar(
     )
   ),
   HTML("<strong>Select scenario:</strong>"),
-  # Container for our aligned radio buttons and table
-  div(
-    class = "radio-table-wrapper",
-    
-    # Container for the radio buttons (positioned absolutely)
-    div(
-      class = "radio-buttons-column",
-      radioButtons(
-        "scenario_select",
-        label = NULL,
-        choices = list(
-          "Option 1" = "cf",
-          "Option 2" = "full_cf"
-        ),
-        selected = "cf"
-      )
-    ),
-    
-    # HTML table with content (but no radio buttons)
-    div(
-      class = "table-container",
-      tags$table(
-        class = "content-table",
-        # Table header
-        tags$thead(
-          tags$tr(
-            tags$th(class = "col-select", "Select"),
-            tags$th("Medical waits for admission"),
-            tags$th("Medical DTA Queue")
-          )
-        ),
-        # Table body
-        tags$tbody(
-          # First row
-          tags$tr(
-            id = "row-cf",
-            class = "content-row",
-            tags$td(class = "col-select", ""), # Empty cell for alignment
-            tags$td("< 1 hour"),
-            tags$td("< 25% of ED bed capacity")
-          ),
-          # Second row
-          tags$tr(
-            id = "row-full_cf",
-            class = "content-row",
-            tags$td(class = "col-select", ""), # Empty cell for alignment
-            tags$td("0 hour"),
-            tags$td("0% of ED bed capacity")
-          )
-        )
-      )
-    ),
-    
-    # JavaScript to handle highlighting of the selected row
-    tags$script(HTML("
-      $(document).ready(function() {
-        // Function to update row highlighting
-        function updateRowHighlighting() {
-          var selectedValue = $('#scenario_select').val();
-          $('.content-row').removeClass('active');
-          $('#row-' + selectedValue).addClass('active');
-        }
-        
-        // Initial highlighting
-        updateRowHighlighting();
-        
-        // Update when radio button changes
-        $('#scenario_select input').on('change', function() {
-          updateRowHighlighting();
-        });
-      });
-    ")),
-    
-    # CSS styling for the alignment and appearance
-    tags$style(HTML("
-      
-      /* Container for both elements */
-        .radio-table-wrapper {
-          position: relative;
-          margin-bottom: 20px;
-        }
-      
-      /* Radio buttons column */
-        .radio-buttons-column {
-          position: absolute;
-          top: 15px; /* Adjust top to fine-tune overall vertical position */
-            left: 5px;
-          z-index: 10;
-          width: 60px;
-          display: flex; /* Use flexbox for vertical centering */
-            flex-direction: column; /* Stack radio buttons vertically */
-            justify-content: space-around; /* Distribute space around items */
-            height: 250px; /* Match the approximate height of the two table rows */
-        }
-      
-      /* Override Shiny's radio button styling */
-.radio-buttons-column .radio {
-  margin: 0 !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px !important; /* Slightly smaller height */
-  width: 40px !important; /* Make them square for better centering */
-  border-radius: 5%; /* Make them circles */
-  border: 1px solid #ccc; /* Add a border */
-  background-color: white; /* Ensure background */
-}
-
-.radio-buttons-column .radio label {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.radio-buttons-column .radio span {
-  display: none; /* Hide the text */
-}
-
-/* Input styling (the actual radio button) */
-.radio-buttons-column .radio input[type='radio'] {
-  appearance: none; /* Remove default appearance */
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 1px solid #aaa;
-  outline: none;
-  cursor: pointer;
-}
-
-.radio-buttons-column .radio input[type='radio']:checked {
-  background-color: #007bff; /* Example checked color */
-  border-color: #007bff;
-}
-
-/* Table container */
-.table-container {
-  margin-left: 0; /* No margin, we position the radio buttons absolutely */
-}
-
-/* Content table styling */
-.content-table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid #ddd;
-}
-
-.content-table th, .content-table td {
-  padding: 12px 15px !important;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-  height: 46px !important; /* Match the radio button container height */
-}
-
-.content-table th {
-  background-color: #f5f5f5;
-  font-weight: bold;
-}
-
-.col-select {
-  width: 60px; /* Match radio button width */
-}
-
-/* Row styling */
-.content-row:hover {
-  background-color: #f9f9f9;
-}
-
-.content-row.active {
-  background-color: #e8f0fe;
-}
-
-/* Remove Shiny's default radio button group styling */
-  .shiny-options-group {
-    margin-top: 0 !important;
-  }
-"
-      
-      )
-)
-  ),
+  
+  uiOutput("scenario_table"),
 
 HTML("
 <p><strong>More information</strong></p>
@@ -906,6 +726,153 @@ div(
 
 server <- function(input, output) {
   
+  # Create a reactive value to store the selected scenario
+  # This ensures we have a valid value from the start
+  selected <- reactiveVal("cf")
+  
+  # Update reactive value when input changes
+  observe({
+    if (!is.null(input$scenario_select)) {
+      selected(input$scenario_select)
+    }
+  })
+  
+  # Create the selection table
+  output$scenario_table <- renderUI({
+    # Get current selection with fallback to default
+    current_selection <- selected()
+    
+    tags$div(
+      class = "scenario-selection",
+      
+      # Hidden radio input that stores our selection
+      radioButtons(
+        "scenario_select",
+        label = NULL,
+        choices = c("cf", "full_cf"),
+        selected = current_selection
+      ),
+      
+      # Table that shows our options
+      tags$table(
+        class = "scenario-table",
+        tags$thead(
+          tags$tr(
+            tags$th("Select"),
+            tags$th("Medical waits for admission"),
+            tags$th("Medical DTA Queue")
+          )
+        ),
+        tags$tbody(
+          # First row - Option 1
+          tags$tr(
+            id = "row-cf",
+            class = paste("scenario-row", if(current_selection == "cf") "selected" else ""),
+            onclick = "Shiny.setInputValue('scenario_select', 'cf');",
+            tags$td(
+              class = "radio-cell",
+              div(
+                class = "radio-container",
+                tags$input(
+                  type = "radio",
+                  name = "scenario_visual", 
+                  checked = if(current_selection == "cf") "checked" else NULL
+                )
+              )
+            ),
+            tags$td("< 1 hour"),
+            tags$td("< 25% of ED bed capacity")
+          ),
+          
+          # Second row - Option 2
+          tags$tr(
+            id = "row-full_cf",
+            class = paste("scenario-row", if(current_selection == "full_cf") "selected" else ""),
+            onclick = "Shiny.setInputValue('scenario_select', 'full_cf');",
+            tags$td(
+              class = "radio-cell",
+              div(
+                class = "radio-container",
+                tags$input(
+                  type = "radio",
+                  name = "scenario_visual",
+                  checked = if(current_selection == "full_cf") "checked" else NULL
+                )
+              )
+            ),
+            tags$td("0 hour"),
+            tags$td("0% of ED bed capacity")
+          )
+        )
+      ),
+      
+      # CSS styles for our table
+      tags$style(HTML("
+        /* Hide the actual radio buttons from Shiny */
+        #scenario_select { 
+          display: none; 
+        }
+        
+        /* Table styling */
+        .scenario-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 15px 0;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .scenario-table th, .scenario-table td {
+          padding: 12px 15px;
+          text-align: left;
+          border: 1px solid #ddd;
+        }
+        
+        .scenario-table th {
+          background-color: #f5f5f5;
+          font-weight: bold;
+        }
+        
+        /* Row styling */
+        .scenario-row {
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+        
+        .scenario-row:hover {
+          background-color: #f0f0f0;
+        }
+        
+        .scenario-row.selected {
+          background-color: #e0e0e0;
+        }
+        
+        /* Radio cell styling */
+        .radio-cell {
+          width: 60px;
+          text-align: center;
+          vertical-align: middle;
+        }
+        
+        /* Radio container for better centering */
+        .radio-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+          height: 100%;
+        }
+        
+        /* Make the radio buttons slightly larger */
+        .radio-container input[type='radio'] {
+          width: 18px;
+          height: 18px;
+          margin: 0;
+          cursor: pointer;
+        }
+      "))
+    )
+  })
+  
   # Create a reactive expression for the filtered data
   filtered_data <- reactive({
     impacts_output_raw %>%
@@ -951,6 +918,7 @@ server <- function(input, output) {
     
     return(result %>% pull(emph_text))
   })
+  
   
   
   excess_mort <- reactive({
@@ -1202,6 +1170,8 @@ server <- function(input, output) {
   output$chart4 <- renderPlot({
     create_plot(handover_chart_data())
   }) %>% bindCache(input$scenario_select, input$grp_select)
+  
+  outputOptions(output, "scenario_table", suspendWhenHidden = FALSE)
   
 }
 
