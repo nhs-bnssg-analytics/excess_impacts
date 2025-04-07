@@ -512,7 +512,162 @@ sidebar = sidebar(
   ),
   HTML("<strong>Select scenario:</strong>"),
   
-  uiOutput("scenario_table"),
+    
+    # Static table structure with no renderUI
+    div(
+      class = "scenario-selection",
+      
+      # Hidden radio input that stores our selection
+      radioButtons(
+        "scenario_select",
+        label = NULL,
+        choices = c("cf", "full_cf"),
+        selected = "cf"  # Default selection
+      ),
+      
+      # Table that shows our options
+      tags$table(
+        id = "scenario-table",
+        class = "scenario-table",
+        tags$thead(
+          tags$tr(
+            tags$th("Select"),
+            tags$th("Medical waits for admission"),
+            tags$th("Medical DTA Queue")
+          )
+        ),
+        tags$tbody(
+          # First row - Option 1
+          tags$tr(
+            id = "row-cf",
+            class = "scenario-row selected", # Default selected
+            onclick = "Shiny.setInputValue('scenario_select', 'cf', {priority: 'event'});",
+            tags$td(
+              class = "radio-cell",
+              div(
+                class = "radio-container",
+                tags$input(
+                  type = "radio",
+                  name = "scenario_visual", 
+                  checked = "checked" # Default checked
+                )
+              )
+            ),
+            tags$td("< 1 hour"),
+            tags$td("< 25% of ED bed capacity")
+          ),
+          
+          # Second row - Option 2
+          tags$tr(
+            id = "row-full_cf",
+            class = "scenario-row",
+            onclick = "Shiny.setInputValue('scenario_select', 'full_cf', {priority: 'event'});",
+            tags$td(
+              class = "radio-cell",
+              div(
+                class = "radio-container",
+                tags$input(
+                  type = "radio",
+                  name = "scenario_visual"
+                )
+              )
+            ),
+            tags$td("0 hour"),
+            tags$td("0% of ED bed capacity")
+          )
+        )
+      ),
+      
+      # JavaScript to handle highlighting
+      tags$script(HTML("
+        $(document).ready(function() {
+          // Function to update rows based on selection
+          function updateSelectedRow(value) {
+            // Remove selected class from all rows
+            $('.scenario-row').removeClass('selected');
+            // Add selected class to the chosen row
+            $('#row-' + value).addClass('selected');
+            
+            // Update radio buttons
+            $('input[name=\"scenario_visual\"]').prop('checked', false);
+            $('#row-' + value + ' input[name=\"scenario_visual\"]').prop('checked', true);
+          }
+          
+          // Listen for changes to the hidden radio input
+          $('#scenario_select').on('change', function() {
+            updateSelectedRow($(this).val());
+          });
+        });
+      ")),
+      
+      # CSS styles for our table
+      tags$style(HTML("
+        /* Hide the actual radio buttons from Shiny */
+        #scenario_select { 
+          display: none; 
+        }
+        
+        /* Table styling */
+        .scenario-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 15px 0;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .scenario-table th, .scenario-table td {
+          padding: 12px 15px;
+          text-align: left;
+          border: 1px solid #ddd;
+        }
+        
+        .scenario-table th {
+          background-color: #f5f5f5;
+          font-weight: bold;
+        }
+        
+        /* Row styling */
+        .scenario-row {
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+        
+        .scenario-row:hover {
+          background-color: #f0f0f0;
+        }
+        
+        .scenario-row.selected {
+          background-color: #e0e0e0;
+        }
+        
+        /* Radio cell styling */
+        .radio-cell {
+          width: 60px;
+          text-align: center;
+          vertical-align: middle;
+        }
+        
+        /* Radio container for better centering */
+        .radio-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+          height: 100%;
+        }
+        
+        /* Make the radio buttons slightly larger */
+        .radio-container input[type='radio'] {
+          width: 18px;
+          height: 18px;
+          margin: 0;
+          cursor: pointer;
+          /* Radio color is now default blue */
+        }
+      "))
+    ),
+  
+  # uiOutput("scenario_table"),
 
 HTML("
 <p><strong>More information</strong></p>
