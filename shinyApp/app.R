@@ -75,7 +75,10 @@ max_report_date <- max(impacts_output_raw$report_date)
 
 static_report_date_line <- HTML(glue::glue(
   # "<span><h5><strong>Excess Impacts:</strong> a what-if analysis based on the week <strong>{format(max_report_date-ddays(7), '%d')}-{format(max_report_date, '%d %B %Y')}</strong></span></h5>"
-  "<span style='line-height: 1'><h5><strong>Excess Impacts:</strong> a what-if analysis</h5></span>"
+  "<span style='line-height: 1'>
+  <h5><strong>Excess Impacts:</strong> a what-if analysis</h5>
+  <p style='font-size: 0.8em; font-weight: lighter;'>open sidebar for more information & options</p>
+</span>"
 ))
 
 
@@ -461,7 +464,7 @@ html, body, .bslib-page-fill {
   font-weight: 400 !important;
 }
   "),
-    tags$script(HTML("
+tags$script(HTML("
       $(document).ready(function() {
         // Add text to the sidebar toggle button after a short delay to ensure DOM is ready
         setTimeout(function() {
@@ -474,93 +477,93 @@ html, body, .bslib-page-fill {
         }, 100);
       });
     "))
-  
-    ),
 
-  style = "height: 100vh; max-height: 100vh; overflow: hidden;",
+  ),
+
+style = "height: 100vh; max-height: 100vh; overflow: hidden;",
+
+sidebar = sidebar(
+  id = "sidebar",
+  bg = "#f8f9fa",
+  width = "500px",
+  open = FALSE,
+  padding = "15px",
+  style = "border-right: 1px solid #e9ecef;",
   
-  sidebar = sidebar(
-    id = "sidebar",
-    bg = "#f8f9fa",
-    width = "500px",
-    open = FALSE,
-    padding = "15px",
-    style = "border-right: 1px solid #e9ecef;",
+  div(
+    id = "report_date",
+    HTML(glue::glue(
+      # "<span><h4><strong>Excess Impacts</strong> </br> A what-if analysis</h4> Based on the week </br> <strong> {format(max_report_date-ddays(7), '%d')}-{format(max_report_date, '%d %B %Y')}</strong></span>"
+      "<span><h4><strong>Excess Impacts</strong> </br> A what-if analysis</h4></span>"
+    ))
+  ),
+  HTML("<strong>Run report for:</strong>"),
+  div(
+    style = "margin-top: 20px;",
+    selectInput(
+      "grp_select", 
+      label = NULL, 
+      choices = c("BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)", "BRI", "NBT", "WGH"),
+      width = "100%",
+      selectize = TRUE
+    )
+  ),
+  HTML("<strong>Select scenario:</strong>"),
+  # Container for our aligned radio buttons and table
+  div(
+    class = "radio-table-wrapper",
     
+    # Container for the radio buttons (positioned absolutely)
     div(
-      id = "report_date",
-      HTML(glue::glue(
-        # "<span><h4><strong>Excess Impacts</strong> </br> A what-if analysis</h4> Based on the week </br> <strong> {format(max_report_date-ddays(7), '%d')}-{format(max_report_date, '%d %B %Y')}</strong></span>"
-        "<span><h4><strong>Excess Impacts</strong> </br> A what-if analysis</h4></span>"
-      ))
-    ),
-    
-    div(
-      style = "margin-top: 20px;",
-      tags$strong("Run report for:", style = "font-weight: 500;"),
-      selectInput(
-        "grp_select", 
-        label = NULL, 
-        choices = c("BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)", "BRI", "NBT", "WGH"),
-        width = "100%",
-        selectize = TRUE
+      class = "radio-buttons-column",
+      radioButtons(
+        "scenario_select",
+        label = NULL,
+        choices = list(
+          "Option 1" = "cf",
+          "Option 2" = "full_cf"
+        ),
+        selected = "cf"
       )
     ),
-    # Container for our aligned radio buttons and table
+    
+    # HTML table with content (but no radio buttons)
     div(
-      class = "radio-table-wrapper",
-      
-      # Container for the radio buttons (positioned absolutely)
-      div(
-        class = "radio-buttons-column",
-        radioButtons(
-          "scenario_select",
-          label = NULL,
-          choices = list(
-            "Option 1" = "cf",
-            "Option 2" = "full_cf"
+      class = "table-container",
+      tags$table(
+        class = "content-table",
+        # Table header
+        tags$thead(
+          tags$tr(
+            tags$th(class = "col-select", "Select"),
+            tags$th("Medical waits for admission"),
+            tags$th("Medical DTA Queue")
+          )
+        ),
+        # Table body
+        tags$tbody(
+          # First row
+          tags$tr(
+            id = "row-cf",
+            class = "content-row",
+            tags$td(class = "col-select", ""), # Empty cell for alignment
+            tags$td("< 1 hour"),
+            tags$td("< 25% of ED bed capacity")
           ),
-          selected = "cf"
-        )
-      ),
-      
-      # HTML table with content (but no radio buttons)
-      div(
-        class = "table-container",
-        tags$table(
-          class = "content-table",
-          # Table header
-          tags$thead(
-            tags$tr(
-              tags$th(class = "col-select", "Select"),
-              tags$th("Medical waits for admission"),
-              tags$th("Medical DTA Queue")
-            )
-          ),
-          # Table body
-          tags$tbody(
-            # First row
-            tags$tr(
-              id = "row-cf",
-              class = "content-row",
-              tags$td(class = "col-select", ""), # Empty cell for alignment
-              tags$td("< 1 hour"),
-              tags$td("< 25% of ED bed capacity")
-            ),
-            # Second row
-            tags$tr(
-              id = "row-full_cf",
-              class = "content-row",
-              tags$td(class = "col-select", ""), # Empty cell for alignment
-              tags$td("0 hour"),
-              tags$td("0% of ED bed capacity")
-            )
+          # Second row
+          tags$tr(
+            id = "row-full_cf",
+            class = "content-row",
+            tags$td(class = "col-select", ""), # Empty cell for alignment
+            tags$td("0 hour"),
+            tags$td("0% of ED bed capacity")
           )
         )
-      ),
-      
-      # JavaScript to handle highlighting of the selected row
-      tags$script(HTML("
+      )
+    ),
+    
+    # JavaScript to handle highlighting of the selected row
+    tags$script(HTML("
       $(document).ready(function() {
         // Function to update row highlighting
         function updateRowHighlighting() {
@@ -578,33 +581,40 @@ html, body, .bslib-page-fill {
         });
       });
     ")),
+    
+    # CSS styling for the alignment and appearance
+    tags$style(HTML("
       
-      # CSS styling for the alignment and appearance
-      tags$style(HTML("
-/* Container for both elements */
-.radio-table-wrapper {
-  position: relative;
-  margin-bottom: 20px;
-}
-
-/* Radio buttons column */
-.radio-buttons-column {
-  position: absolute;
-  top: 45px;
-  left: 5px;
-  z-index: 10;
-  width: 60px;
-}
-
-/* Override Shiny's radio button styling */
+      /* Container for both elements */
+        .radio-table-wrapper {
+          position: relative;
+          margin-bottom: 20px;
+        }
+      
+      /* Radio buttons column */
+        .radio-buttons-column {
+          position: absolute;
+          top: 15px; /* Adjust top to fine-tune overall vertical position */
+            left: 5px;
+          z-index: 10;
+          width: 60px;
+          display: flex; /* Use flexbox for vertical centering */
+            flex-direction: column; /* Stack radio buttons vertically */
+            justify-content: space-around; /* Distribute space around items */
+            height: 250px; /* Match the approximate height of the two table rows */
+        }
+      
+      /* Override Shiny's radio button styling */
 .radio-buttons-column .radio {
   margin: 0 !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 46px !important; /* Consistent height */
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
+  height: 40px !important; /* Slightly smaller height */
+  width: 40px !important; /* Make them square for better centering */
+  border-radius: 5%; /* Make them circles */
+  border: 1px solid #ccc; /* Add a border */
+  background-color: white; /* Ensure background */
 }
 
 .radio-buttons-column .radio label {
@@ -619,6 +629,22 @@ html, body, .bslib-page-fill {
 
 .radio-buttons-column .radio span {
   display: none; /* Hide the text */
+}
+
+/* Input styling (the actual radio button) */
+.radio-buttons-column .radio input[type='radio'] {
+  appearance: none; /* Remove default appearance */
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid #aaa;
+  outline: none;
+  cursor: pointer;
+}
+
+.radio-buttons-column .radio input[type='radio']:checked {
+  background-color: #007bff; /* Example checked color */
+  border-color: #007bff;
 }
 
 /* Table container */
@@ -637,7 +663,7 @@ html, body, .bslib-page-fill {
   padding: 12px 15px !important;
   text-align: left;
   border-bottom: 1px solid #ddd;
-  height: 22px !important; /* Control cell height */
+  height: 46px !important; /* Match the radio button container height */
 }
 
 .content-table th {
@@ -658,46 +684,80 @@ html, body, .bslib-page-fill {
   background-color: #e8f0fe;
 }
 
-/* Adjust radio button container to match table rows better */
-.shiny-options-group {
-  position: relative;
-  top: 54px !important; /* Adjusted to center buttons better */
-  margin-top: 0 !important;
-}
-
-/* Fine-tune individual radio buttons for better vertical centering */
-.radio-buttons-column .radio:first-child {
-  margin-bottom: 10px !important; /* Push first button down slightly */
-}
-
-.radio-buttons-column .radio:last-child {
-  margin-top: 10px !important; /* Push second button up slightly */
-}
-    "))
-    ),
-        HTML("<h4>*Direct Impacts</h4>
-               <p>When patients experience delays in hospital admission, there are direct negative consequences on their health outcomes. Our analysis has revealed a clear association between these admission delays and increased 30-day mortality rates, as well as prolonged in-hospital lengths of stay.</p>
-               </p>
-             <h4>**Indirect Impacts</h4>
-               <p>
-               The medical Decision to Admit (DTA) queue has wider impact, affecting not only patients waiting for admission, but also creating knock-on effects for other patients arriving at the Emergency Department. Specifically, our analysis demonstrates that a larger DTA queue is associated with a measurable increase in both ambulance handover times and emergency response times, indicating a bottleneck in the patient flow.
-               </p>"
-        )
-
+/* Remove Shiny's default radio button group styling */
+  .shiny-options-group {
+    margin-top: 0 !important;
+  }
+"
+      
+      )
+)
   ),
-  div(
-    class = "main-content-container",
-    
-      # Only show main heading when sidebar is closed
-      conditionalPanel(
-        condition = "input.sidebar !== true",
-        div(
-          id = "main_heading",
-          class = "main-heading",
-          uiOutput("report_date_line")
-        )
-      ),
-    
+
+HTML("
+<p><strong>More information</strong></p>
+     <p>In this analysis we examine the impact of <strong>delays in medical admissions</strong>, where there are two types of impact:</p>
+
+<ul>
+    <li><strong>Direct Impacts</strong>
+        <p>When patients experience <strong>delays in hospital admission</strong>, there are direct negative consequences on their health outcomes. Our analysis has revealed a <strong>clear association</strong> between these admission delays and <strong>increased 30-day mortality rates</strong>, as well as <strong>prolonged in-hospital lengths of stay</strong>.</p>
+    </li>
+    <li><strong>Indirect Impacts</strong>
+        <p>The <strong>medical Decision to Admit (DTA) queue</strong> has wider impact, affecting not only patients waiting for admission, but also creating knock-on effects for other patients arriving at the Emergency Department. Specifically, our analysis demonstrates that a <strong>larger DTA queue is associated with a measurable increase in both ambulance handover times and emergency response times</strong>.</p>
+    </li>
+</ul>
+
+<p><strong>Regression analysis</strong> is a powerful statistical tool that allows us to examine the relationship between variables. A key strength of regression lies in its ability to <strong>control for confounding variables</strong>. Here, using regression analysis, we have controlled for patient demographics (<strong>age, sex, deprivation</strong>), and <strong>comorbidities</strong>, as well as time-based and ED factors (<strong>time of arrival, number of previous arrivals in 60 days</strong>).</p>
+
+<p>While regression analysis is excellent at identifying and quantifying <strong>associations</strong>, it's crucial to remember that <strong>association does not automatically imply causation</strong>. Even after controlling for numerous potential confounders, a statistically significant association between variables <strong>does not definitively prove that one variable causes the other</strong>.
+There could still be:</p>
+<ul>
+    <li><strong>Unmeasured confounders</strong>: Variables we didn't know about or couldn't measure might still be influencing the relationship.</li>
+    <li><strong>Reverse causality</strong>: The dependent variable might actually be influencing the independent variable.</li>
+    <li><strong>Spurious relationships</strong>: The observed association might be due to chance or some other unmodeled factor.</li>
+</ul>"),
+
+# HTML("<p><h4><strong>More information</strong></h4></p>
+# <p><strong>Regression analysis</strong> is a powerful statistical tool that allows us to examine the relationship between variables. A key strength of regression lies in its ability to <strong>control for confounding variables</strong>. Here, we have controlled for patient demographics (<strong>age, sex, deprivation</strong>), and <strong>comorbidities</strong>, as well as time-based and ED factors (<strong>time of arrival, number of previous arrivals in 60 days</strong>).</p>
+# 
+# <p>While regression analysis is excellent at identifying and quantifying <strong>associations</strong>, it's crucial to remember that <strong>association does not automatically imply causation</strong>. Even after controlling for numerous potential confounders, a statistically significant association between variables <strong>does not definitively prove that one variable causes the other</strong>.
+# There could still be:</p>
+# <ul>
+#     <li><strong>Unmeasured confounders</strong>: Variables we didn't know about or couldn't measure might still be influencing the relationship.</li>
+#     <li><strong>Reverse causality</strong>: The dependent variable might actually be influencing the independent variable.</li>
+#     <li><strong>Spurious relationships</strong>: The observed association might be due to chance or some other unmodeled factor.</li>
+# </ul>"),
+#         
+
+
+
+
+# HTML("<p>In this analysis we examine the impact of <strong>medical boarding</strong>, where there are two types of impact:</p>
+# 
+# <ul>
+#     <li><strong>Direct Impacts</strong>
+#         <p>When patients experience <strong>delays in hospital admission</strong>, there are direct negative consequences on their health outcomes. Our analysis has revealed a <strong>clear association</strong> between these admission delays and <strong>increased 30-day mortality rates</strong>, as well as <strong>prolonged in-hospital lengths of stay</strong>.</p>
+#     </li>
+#     <li><strong>Indirect Impacts</strong>
+#         <p>The <strong>medical Decision to Admit (DTA) queue</strong> has wider impact, affecting not only patients waiting for admission, but also creating knock-on effects for other patients arriving at the Emergency Department. Specifically, our analysis demonstrates that a <strong>larger DTA queue is associated with a measurable increase in both ambulance handover times and emergency response times</strong>.</p>
+#     </li>
+# </ul>"
+#         )
+
+),
+div(
+  class = "main-content-container",
+  
+  # Only show main heading when sidebar is closed
+  conditionalPanel(
+    condition = "input.sidebar !== true",
+    div(
+      id = "main_heading",
+      class = "main-heading",
+      uiOutput("report_date_line")
+    )
+  ),
+  
   # Top heading paragraph
   card(
     full_screen = FALSE,
@@ -707,7 +767,7 @@ html, body, .bslib-page-fill {
     gap = "0px",
     uiOutput("header")
   ),
-
+  
   # Scenario descriptions - centered VS version
   card(
     full_screen = FALSE,
@@ -721,11 +781,11 @@ html, body, .bslib-page-fill {
   ),
   # Main layout - 3 columns
   layout_columns(
-    height = "calc(100vh - 250px)",
-      col_widths = c(5, 4, 3),
+    height = "calc(100vh - 280px)",
+    col_widths = c(5, 4, 3),
     gap = "0px",
     class = "layout-column-no-gap flex-fill", 
-      style = "overflow: hidden !important;",
+    style = "overflow: hidden !important;",
     
     # Left column 
     layout_column_wrap(
@@ -736,9 +796,9 @@ html, body, .bslib-page-fill {
       card(
         class = "no-border-no-pad",
         height = "20%",
-        style = "display: flex; align-items: center; justify-content: flex-start; padding: 0;",
+        # style = "display: flex; align-items: center; justify-content: flex-start; padding: 0;",
         card_body(
-          style = "width: 100%; height: 100%; display: flex; align-items: center; padding: 10px;",
+          style = "justify-content: center;",
           uiOutput("mort_subtext")
         )
       ),
@@ -747,9 +807,9 @@ html, body, .bslib-page-fill {
       card(
         class = "no-border-no-pad",
         height = "20%",
-        style = "display: flex; align-items: center; justify-content: flex-start; padding: 0;",
+        # style = "display: flex; align-items: center; justify-content: flex-start; padding: 0;",
         card_body(
-          style = "width: 100%; height: 100%; display: flex; align-items: center; padding: 10px;",
+          style = "justify-content: center;",
           uiOutput("los_subtext")
         )
       ),
@@ -758,9 +818,9 @@ html, body, .bslib-page-fill {
       card(
         class = "no-border-no-pad",
         height = "20%",
-        style = "display: flex; align-items: center; justify-content: flex-start; padding: 0;",
+        # style = "display: flex; align-items: center; justify-content: flex-start; padding: 0;",
         card_body(
-          style = "width: 100%; height: 100%; display: flex; align-items: center; padding: 10px;",
+          style = "justify-content: center;",
           uiOutput("resp_subtext")
         )
       ),
@@ -769,9 +829,9 @@ html, body, .bslib-page-fill {
       card(
         class = "no-border-no-pad",
         height = "20%",
-        style = "display: flex; align-items: center; justify-content: flex-start; padding: 0;",
+        # style = "display: flex; align-items: center; justify-content: flex-start; padding: 0;",
         card_body(
-          style = "width: 100%; height: 100%; display: flex; align-items: center; padding: 10px;",
+          style = "justify-content: center;",
           uiOutput("handover_subtext")
         )
       )
@@ -841,7 +901,7 @@ html, body, .bslib-page-fill {
       
     )
   )
-  )
+)
 )
 
 server <- function(input, output) {
@@ -892,7 +952,7 @@ server <- function(input, output) {
     return(result %>% pull(emph_text))
   })
   
-
+  
   excess_mort <- reactive({
     filtered_data() %>%
       filter(report_date == max_report_date, impact %in% c("om6_impact", "om6_impact_cf")) %>%
@@ -983,7 +1043,7 @@ server <- function(input, output) {
                    select(impact, value, label, target, sub_text, value_label))
     }
     
-
+    
   }
   
   # Get individual chart data directly
@@ -1016,13 +1076,13 @@ server <- function(input, output) {
                theme_void() + 
                labs(title = "No data available"))
     }
-
+    
     data %>%
       ggplot(aes(x = impact, y = value, fill = impact)) +
       geom_col() +
       geom_hline(aes(yintercept = target), linetype = 2, size = 2, colour = "grey30") +
       ggfx::with_outer_glow(geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
-                        colour = "white", x_offset = 0, y_offset = 0, expand = 12.5, sigma = 0) +
+                            colour = "white", x_offset = 0, y_offset = 0, expand = 12.5, sigma = 0) +
       theme_void() +
       scale_y_continuous(expand = expansion(mult = c(0, 0.5))) +
       scale_fill_manual(values = unname(app_colours)) +
