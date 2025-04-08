@@ -499,6 +499,7 @@ sidebar = sidebar(
       "<span><h4><strong>Excess Impacts</strong> </br> A what-if analysis</h4></span>"
     ))
   ),
+  HTML("<span><p>For comments or questions, email Nick Howlett (Modelling and Analytics, ICB): <a href='mailto:nick.howlett5@nhs.net'>nick.howlett5@nhs.net</a></h5></p><span>"),
   HTML("<strong>Run report for:</strong>"),
   div(
     style = "margin-top: 20px;",
