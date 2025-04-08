@@ -11,6 +11,18 @@ library(RMySQL)
 # Helper function to replace %||% operator
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
+format_week_interval <- function(end_date) {
+  # Ensure the input is a Date object
+  end_date <- as.Date(end_date)
+  start_date <- end_date - 6
+  
+  if (format(start_date, "%m") == format(end_date, "%m")) {
+    return(paste0(format(start_date, "%d"), "-", format(end_date, "%d"), " ", format(start_date, "%B")))
+  } else {
+    return(paste0(format(start_date, "%d"), " ", format(start_date, "%B"), " - ", format(end_date, "%d"), " ", format(end_date, "%B")))
+  }
+}
+
 app_colours <- c(
   actual = "#88a0a8",     # actual
   hypothetical = "#B4CEB3" # hypothetical
@@ -72,8 +84,9 @@ impacts_output_raw  <- DBI::dbGetQuery(conn, "select * from excess_impacts") %>%
   mutate(value_label = gen_html_text(emph_text)) 
 
 
-# Store max report date as a static value
+# Store max/max report date as a static value
 max_report_date <- max(impacts_output_raw$report_date)
+min_report_date <- min(impacts_output_raw$report_date)
 
 static_report_date_line <- HTML(glue::glue(
   # "<span><h5><strong>Excess Impacts:</strong> a what-if analysis based on the week <strong>{format(max_report_date-ddays(7), '%d')}-{format(max_report_date, '%d %B %Y')}</strong></span></h5>"
@@ -82,7 +95,6 @@ static_report_date_line <- HTML(glue::glue(
   <p style='font-size: 0.8em; font-weight: lighter;'>open sidebar for more information & options</p>
 </span>"
 ))
-
 
 
 ui <- page_sidebar(
@@ -1085,10 +1097,29 @@ server <- function(input, output) {
       mutate(diff = round(om6_impact) - round(om6_impact_cf)) %>%
       pull(diff)
   })
+
+  excess_mort_pre <- reactive({
+    filtered_data() %>%
+      filter(report_date == min_report_date, impact %in% c("om6_impact", "om6_impact_cf")) %>%
+      select(impact, value) %>%
+      pivot_wider(names_from = impact) %>%
+      mutate(diff = round(om6_impact) - round(om6_impact_cf)) %>%
+      pull(diff)
+  })
   
   excess_los <- reactive({
     filtered_data() %>%
       filter(report_date == max_report_date, impact %in% c("om4_impact", "om4_impact_cf")) %>%
+      select(impact, value) %>%
+      pivot_wider(names_from = impact) %>%
+      mutate(diff = round(om4_impact) - round(om4_impact_cf)) %>%
+      pull(diff) %>%
+      `*`(7)
+  })
+
+  excess_los_pre <- reactive({
+    filtered_data() %>%
+      filter(report_date == min_report_date, impact %in% c("om4_impact", "om4_impact_cf")) %>%
       select(impact, value) %>%
       pivot_wider(names_from = impact) %>%
       mutate(diff = round(om4_impact) - round(om4_impact_cf)) %>%
@@ -1100,6 +1131,15 @@ server <- function(input, output) {
     filtered_data() # hack to make this reactive expression appear to change when location input changes
     impacts_output_raw %>%
       filter(report_date == max_report_date, 
+             impact %in% c("om1b_raw"),
+             scenario %in% c("n/a", "actual", input$scenario_select)) %>%
+      pull(emph_text)
+  })
+
+  excess_resp_pre <- reactive({
+    filtered_data() # hack to make this reactive expression appear to change when location input changes
+    impacts_output_raw %>%
+      filter(report_date == min_report_date, 
              impact %in% c("om1b_raw"),
              scenario %in% c("n/a", "actual", input$scenario_select)) %>%
       pull(emph_text)
@@ -1122,6 +1162,12 @@ server <- function(input, output) {
   excess_handover <- reactive({
     filtered_data() %>%
       filter(report_date == max_report_date, impact %in% c("om2_raw")) %>%
+      pull(emph_text)
+  })
+  
+  excess_handover_pre <- reactive({
+    filtered_data() %>%
+      filter(report_date == min_report_date, impact %in% c("om2_raw")) %>%
       pull(emph_text)
   })
   
@@ -1246,7 +1292,7 @@ server <- function(input, output) {
     h5(
       style = "line-height: 1.5; margin: 0;",  # Increased line-height from 1.4 to 1.5
       HTML(glue::glue(
-        "<p class='app-standard-text' style='margin: 5px 0; max-height: none;'><span><strong>Between {format(max_report_date-ddays(7), '%d')}-{format(max_report_date, '%d %B %Y')}</strong>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
+        "<p class='app-standard-text' style='margin: 5px 0; max-height: none;'><span><strong>Between {format_week_interval(max_report_date)}</strong>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
       ))
     )
   })
@@ -1276,36 +1322,65 @@ server <- function(input, output) {
   
   
   output$mort_subtext <- renderUI({
-    req(excess_mort(), n_admits())
+    req(excess_mort(), excess_mort_pre(), n_admits())
+    
+    pre_text <- case_when(
+      excess_mort() > excess_mort_pre() ~ glue::glue("(<strong>up</strong> from <strong>{excess_mort_pre()}</strong> last week)"),
+      excess_mort() < excess_mort_pre() ~ glue::glue("(<strong>down</strong> from <strong>{excess_mort_pre()}</strong> last week)"),
+      excess_mort() == excess_mort_pre() ~ glue::glue("(<strong>unchanged</strong> from last week)"),
+      .default = ""
+      )
     
     HTML(
-      glue::glue("<p class='app-standard-text style='margin: 0;'><strong>Due to delays for their admission</strong>, we estimate there will be <strong>{excess_mort()} avoidable deaths</strong> in the cohort of emergency Medical admissions from the <strong>last 7 days</strong>.</p>"
+      glue::glue("<p class='app-standard-text style='margin: 0;'><strong>Due to delays for their admission</strong>, we estimate there will be <strong>{excess_mort()} avoidable deaths</strong> in the cohort of emergency Medical admissions from the <strong>last 7 days</strong> {pre_text}.</p>"
       )
     )
   })
   
   output$los_subtext <- renderUI({
-    req(n_admits(), excess_los())
+    req(n_admits(), excess_los(), excess_los_pre())
+    
+    pre_text <- case_when(
+      excess_los() > excess_los_pre() ~ glue::glue("(<strong>up</strong> from <strong>{excess_los_pre()/7}</strong> last week)"),
+      excess_los() < excess_los_pre() ~ glue::glue("(<strong>down</strong> from <strong>{excess_los_pre()/7}</strong> last week)"),
+      excess_los() == excess_los_pre() ~ glue::glue("(<strong>unchanged</strong> from last week)"),
+      .default = ""
+    )
     
     HTML(
-      glue::glue("<p class='app-standard-text style='margin: 0;'>The <strong>{n_admits()}</strong> Medical admits from the <strong>last 7 days</strong> will have an estimated <strong>excess {excess_los()} days of length of stay</strong> combined, <strong>due to their delays for admission</strong>. This is equivalent to <strong>{excess_los()/7} excess Medical beds occupied per day.</p>"
+      glue::glue("<p class='app-standard-text style='margin: 0;'>The <strong>{n_admits()}</strong> Medical admits from the <strong>last 7 days</strong> will have an estimated <strong>excess {excess_los()} days of length of stay</strong> combined, <strong>due to their delays for admission</strong>. This is equivalent to <strong>{excess_los()/7} excess Medical beds occupied</strong> per day {pre_text}.</p>"
       )
     )
   })
   
   output$resp_subtext <- renderUI({
-    req(n_resp(), excess_resp(), resp_target())
+    req(n_resp(), excess_resp(), excess_resp_pre(), resp_target())
+    
+    pre_text <- case_when(
+      excess_resp() > excess_resp_pre() ~ glue::glue("(<strong>up</strong> from <strong>{excess_resp_pre()}</strong> last week)"),
+      excess_resp() < excess_resp_pre() ~ glue::glue("(<strong>down</strong> from <strong>{excess_resp_pre()}</strong> last week)"),
+      excess_resp() == excess_resp_pre() ~ glue::glue("(<strong>unchanged</strong> from last week)"),
+      .default = ""
+    )
+    
     HTML(
-      glue::glue("<p class='app-standard-text style='margin: 0;'>The <strong>{n_resp()}</strong> Catergory 2 ambulance responses over the <strong>last 7 days</strong> had an <strong>excess {excess_resp()} hours response time</strong> combined, <strong>due to the medical DTA queue</strong>. The impact of this excess on meeting the <strong>national target (dashed-line)</strong> that <strong>90% of responses are within {resp_target()} minutes</strong> can be seen in the chart."
+      glue::glue("<p class='app-standard-text style='margin: 0;'>The <strong>{n_resp()}</strong> Catergory 2 ambulance responses over the <strong>last 7 days</strong> had an <strong>excess {excess_resp()} hours response time</strong> combined, <strong>due to the medical DTA queue</strong> {pre_text}. The impact of this excess on meeting the <strong>national target (dashed-line)</strong> that <strong>90% of responses are within {resp_target()} minutes</strong> can be seen in the chart."
       )
     )
   })
   
   output$handover_subtext <- renderUI({
-    req(n_handover(), excess_handover(), handover_target(), n_amb())
+    req(n_handover(), excess_handover(), excess_handover_pre(), handover_target(), n_amb())
+    
+    pre_text <- case_when(
+      excess_handover() > excess_handover_pre() ~ glue::glue("(<strong>up</strong> from <strong>{excess_handover_pre()}</strong> last week)"),
+      excess_handover() < excess_handover_pre() ~ glue::glue("(<strong>down</strong> from <strong>{excess_handover_pre()}</strong> last week)"),
+      excess_handover() == excess_handover_pre() ~ glue::glue("(<strong>unchanged</strong> from last week)"),
+      .default = ""
+    )
     
     HTML(
-      glue::glue("<p class='app-standard-text style='margin: 0;'>The <strong>{n_handover()}</strong> ambulance handovers over the <strong>last 7 days</strong> had an <strong>excess {excess_handover()} hours handover time</strong> combined, <strong>due to the medical DTA queue</strong>. This excess delay is <strong>equivalent to {n_amb()} ambulances being out of service througout the last 7 days</strong>. The impact of this excess on meeting the <strong>national target (dashed-line)</strong> that <strong>90% of handovers are within {handover_target()} minutes</strong> can be seen in the chart."
+      glue::glue("<p class='app-standard-text style='margin: 0;'>The <strong>{n_handover()}</strong> ambulance handovers over the <strong>last 7 days</strong> had an <strong>excess {excess_handover()} hours handover time</strong> combined {pre_text}, <strong>due to the medical DTA queue</strong>. This excess delay is <strong>equivalent to {n_amb()} ambulances being out of service througout the last 7 days</strong>. The impact of this excess on meeting the <strong>national target (dashed-line)</strong> that <strong>90% of handovers are within {handover_target()} minutes</strong> can be seen in the chart."
       )
     )
   })
@@ -1314,7 +1389,7 @@ server <- function(input, output) {
   output$chart1 <- renderPlot({
     create_plot(mortality_chart_data())
   }) %>% bindCache(input$scenario_select, input$grp_select)
-  
+
   output$chart2 <- renderPlot({
     create_plot(los_chart_data())
   }) %>% bindCache(input$scenario_select, input$grp_select)
