@@ -554,7 +554,7 @@ sidebar = sidebar(
           tags$tr(
             id = "row-cf",
             class = "scenario-row selected", # Default selected
-            onclick = "Shiny.setInputValue('scenario_select', 'cf', {priority: 'event'});",
+            onclick = "document.getElementById('row-cf').querySelector('input[type=\"radio\"]').checked = true; Shiny.setInputValue('scenario_select', 'cf');",
             tags$td(
               class = "radio-cell",
               div(
@@ -574,7 +574,7 @@ sidebar = sidebar(
           tags$tr(
             id = "row-full_cf",
             class = "scenario-row",
-            onclick = "Shiny.setInputValue('scenario_select', 'full_cf', {priority: 'event'});",
+            onclick = "document.getElementById('row-full_cf').querySelector('input[type=\"radio\"]').checked = true; Shiny.setInputValue('scenario_select', 'full_cf');",
             tags$td(
               class = "radio-cell",
               div(

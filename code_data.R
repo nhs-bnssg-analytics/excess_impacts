@@ -13,8 +13,20 @@ con <- switch(.Platform$OS.type,
                   RODBC::odbcDriverConnect()}
 )
 
+# find the minimum of the max dates from the data source (i.e. the last date with complete information)
+max_date <- RODBC::sqlQuery(con, "SELECT CAST(MIN(max_date) AS DATE) AS max_date
+FROM (
+    SELECT MAX(Arrival_Date) AS max_date
+    FROM Analyst_SQL_Area.dbo.tbl_BNSSG_ECDS
+    UNION ALL
+    SELECT MAX([Time_Of_Incident]) AS max_date
+    FROM [ABI].[dbo].[vw_UrgentCare_Ambulance_SWASFT]
+) AS CombinedMaxDates;") %>%
+  pull(max_date) %>%
+  ymd()
 
-report_end <- ymd("2025-04-01")#today() - ddays(7)
+
+report_end <- max_date
 report_start <- report_end - ddays(6)
 
 n_hour <- 2
