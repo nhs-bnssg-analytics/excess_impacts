@@ -4,6 +4,8 @@ library(RMySQL)
 require(lubridate)
 library(tidymodels)
 
+Sys.setenv(TZ = "UTC") # avoid daylight savings issues
+
 con <- switch(.Platform$OS.type,
               windows = RODBC::odbcConnect(dsn = "xsw"),
               unix = {"/root/sql/sql_connect_string_linux" |>
@@ -12,7 +14,7 @@ con <- switch(.Platform$OS.type,
 )
 
 
-report_end <- today() - ddays(7)
+report_end <- ymd("2025-04-01")#today() - ddays(7)
 report_start <- report_end - ddays(6)
 
 n_hour <- 2
