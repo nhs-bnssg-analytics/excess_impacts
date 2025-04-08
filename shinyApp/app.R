@@ -695,7 +695,7 @@ HTML("
     </li>
 </ul>
 
-<p><strong>Regression analysis</strong> is a powerful statistical tool that allows us to examine the relationship between variables. A key strength of regression lies in its ability to <strong>control for confounding variables</strong>. Here, using regression analysis, we have controlled for patient demographics (<strong>age, sex, deprivation</strong>), and <strong>comorbidities</strong>, as well as time-based and ED factors (<strong>time of arrival, number of previous arrivals in 60 days</strong>).</p>
+<p><strong>Regression analysis</strong> is a powerful statistical tool that allows us to examine the relationship between variables. A key strength of regression lies in its ability to <strong>control for confounding variables</strong>. Here, we have controlled for patient demographics (<strong>age, sex, deprivation</strong>), and <strong>comorbidities</strong>, as well as time-based and ED factors (<strong>time of arrival, number of previous arrivals in 60 days</strong>).</p>
 
 <p>While regression analysis is excellent at identifying and quantifying <strong>associations</strong>, it's crucial to remember that <strong>association does not automatically imply causation</strong>. Even after controlling for numerous potential confounders, a statistically significant association between variables <strong>does not definitively prove that one variable causes the other</strong>.
 There could still be:</p>
