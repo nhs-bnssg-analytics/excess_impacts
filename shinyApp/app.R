@@ -29,7 +29,8 @@ app_colours <- c(
 )
 
 gen_html_text <- function(emph_text){
-  str_c("<span style='font-weight:bold;font-size:30pt;'>",
+  str_c(
+    "<span style='font-weight:bold;font-size:30pt;'>",
         emph_text,
         # "</span><br><span style='font-size:15pt'>",
         # sub_text,
@@ -103,8 +104,8 @@ ui <- page_sidebar(
     tags$style("
   /* Main page and container settings */
 html, body, .bslib-page-fill {
-  height: 100vh !important;
-  max-height: 100vh !important;
+  /* height: 100vh !important; */  /* Removed */
+  /* max-height: 100vh !important; */ /* Removed */
   overflow: hidden !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -119,7 +120,7 @@ html, body, .bslib-page-fill {
   /* height: 100vh !important;  */
   display: flex !important;
   flex-direction: column !important;
-  overflow: hidden !important;
+  overflow-y: auto !important; /* Changed from overflow: hidden */
 }
 
 /* Flex utilities */
@@ -194,14 +195,14 @@ html, body, .bslib-page-fill {
 
 /* Sidebar styling */
 .bslib-sidebar-layout {
-  height: 100vh !important;
-  max-height: 100vh !important;
+  /* height: 100vh !important; */  /* Removed */
+  /* max-height: 100vh !important; */ /* Removed */
   overflow: hidden !important;
 }
 
 .bslib-sidebar-layout > .bslib-sidebar-layout-panel {
-  height: 100vh !important;
-  max-height: 100vh !important;
+  /* height: 100vh !important; */  /* Removed */
+  /* max-height: 100vh !important; */ /* Removed */
   overflow: auto !important;
 }
 
@@ -472,7 +473,7 @@ html, body, .bslib-page-fill {
   margin-top: 0 !important;
 }
 .app-standard-text {
-  font-size: 16px !important; /* Choose your preferred size */
+  font-size: 0.85rem !important; /* Choose your preferred size */
   line-height: 1.5 !important;
   margin: 5px 0 !important;
   font-weight: 400 !important;
@@ -749,9 +750,9 @@ div(
   # Top heading paragraph
   card(
     full_screen = FALSE,
-    height = "100px",
+    height = "80px",
     class = "no-border-no-pad header-card",
-    style = "overflow: visible !important; margin-bottom: 20px; flex-shrink: 0;",
+    style = "overflow: visible !important; margin-bottom: 10px; flex-shrink: 0;",
     gap = "0px",
     uiOutput("header")
   ),
@@ -759,7 +760,7 @@ div(
   # Scenario descriptions - centered VS version
   card(
     full_screen = FALSE,
-    height = "100px",
+    height = "70px",
     class = "no-border-no-pad",
     style = "overflow: visible !important; margin-bottom: 20px; flex-shrink: 0;",
     div(
@@ -769,7 +770,7 @@ div(
   ),
   # Main layout - 3 columns
   layout_columns(
-    height = "calc(100vh - 280px)",
+    height = "calc(100vh - 240px)",
     col_widths = c(5, 4, 3),
     gap = "0px",
     class = "layout-column-no-gap flex-fill", 
@@ -1041,6 +1042,31 @@ server <- function(input, output) {
     )
   })
   
+  # More reliable reactives using direct inputs
+  screenWidth <- reactive({
+    if (is.null(input$windowWidth) || input$windowWidth == "") {
+      1200  # Default fallback
+    } else {
+      as.numeric(input$windowWidth)
+    }
+  })
+  
+  screenHeight <- reactive({
+    if (is.null(input$windowHeight) || input$windowHeight == "") {
+      800  # Default fallback
+    } else {
+      as.numeric(input$windowHeight)
+    }
+  })
+  
+  pixelRatio <- reactive({
+    if (is.null(input$pixelRatio) || input$pixelRatio == "") {
+      1  # Default fallback
+    } else {
+      as.numeric(input$pixelRatio)
+    }
+  })
+  
   # Create a reactive expression for the filtered data
   filtered_data <- reactive({
     impacts_output_raw %>%
@@ -1240,6 +1266,9 @@ server <- function(input, output) {
   
   # Create a function to generate plots with consistent formatting
   create_plot <- function(data) {
+    
+    browser()
+    
     if (is.null(data) || nrow(data) == 0) {
       # Return an empty plot for debugging
       return(ggplot() + 
@@ -1254,7 +1283,7 @@ server <- function(input, output) {
       ggfx::with_outer_glow(geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
                             colour = "white", x_offset = 0, y_offset = 0, expand = 12.5, sigma = 0) +
       theme_void() +
-      scale_y_continuous(expand = expansion(mult = c(0, 0.5))) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.8))) +
       scale_fill_manual(values = unname(app_colours)) +
       theme(legend.position = "off",
             plot.margin = margin(0, 0, 0, 0, "pt"),
@@ -1380,7 +1409,7 @@ server <- function(input, output) {
     )
     
     HTML(
-      glue::glue("<p class='app-standard-text style='margin: 0;'>The <strong>{n_handover()}</strong> ambulance handovers over the <strong>last 7 days</strong> had an <strong>excess {excess_handover()} hours handover time</strong> combined {pre_text}, <strong>due to the medical DTA queue</strong>. This excess delay is <strong>equivalent to {n_amb()} ambulances being out of service througout the last 7 days</strong>. The impact of this excess on meeting the <strong>national target (dashed-line)</strong> that <strong>90% of handovers are within {handover_target()} minutes</strong> can be seen in the chart."
+      glue::glue("<p class='app-standard-text style='margin: 0;'>Over the <strong>last 7 days</strong> the <strong>{n_handover()}</strong> ambulance handovers experienced a combined <strong>excess of {excess_handover()} hours </strong> {pre_text}, <strong>due to the medical DTA queue</strong>, effectively <strong> keeping {n_amb()} ambulances out of service.</strong>. The impact of this excess on meeting the <strong>national target (dashed-line)</strong> that <strong>90% of handovers are within {handover_target()} minutes</strong> can be seen in the chart."
       )
     )
   })
@@ -1388,19 +1417,19 @@ server <- function(input, output) {
   # Plot outputs - render directly from the chart data
   output$chart1 <- renderPlot({
     create_plot(mortality_chart_data())
-  }) %>% bindCache(input$scenario_select, input$grp_select)
+  }, res = 64) %>% bindCache(input$scenario_select, input$grp_select)
 
   output$chart2 <- renderPlot({
     create_plot(los_chart_data())
-  }) %>% bindCache(input$scenario_select, input$grp_select)
+  }, res = 64) %>% bindCache(input$scenario_select, input$grp_select)
   
   output$chart3 <- renderPlot({
     create_plot(resp_chart_data())
-  }) %>% bindCache(input$scenario_select, input$grp_select)
+  }, res = 64) %>% bindCache(input$scenario_select, input$grp_select)
   
   output$chart4 <- renderPlot({
     create_plot(handover_chart_data())
-  }) %>% bindCache(input$scenario_select, input$grp_select)
+  }, res = 64) %>% bindCache(input$scenario_select, input$grp_select)
   
   outputOptions(output, "scenario_table", suspendWhenHidden = FALSE)
   
