@@ -492,7 +492,21 @@ tags$script(HTML("
           }
         }, 100);
       });
-    "))
+    ")),
+tags$script(HTML(
+  '
+      $(document).on("shiny:connected", function(e) {
+        var pixelRatio = window.devicePixelRatio || 1;
+        Shiny.setInputValue("device_pixel_ratio", pixelRatio);
+      });
+
+      // Optionally, listen for resize events as scaling changes might affect layout
+      $(window).resize(function() {
+        var pixelRatio = window.devicePixelRatio || 1;
+        Shiny.setInputValue("device_pixel_ratio", pixelRatio);
+      });
+      '
+))
 
   ),
 
@@ -747,7 +761,7 @@ div(
       uiOutput("report_date_line")
     )
   ),
-  
+  textOutput("devicePixelRatioInfo"),
   # Top heading paragraph
   card(
     full_screen = FALSE,
@@ -895,6 +909,15 @@ div(
 )
 
 server <- function(input, output) {
+  
+  device_pixel_ratio <- reactive({
+    req(input$device_pixel_ratio) # Wait until the value is available
+    input$device_pixel_ratio
+  })
+  
+  output$devicePixelRatioInfo <- renderText({
+    paste("Device Pixel Ratio:", device_pixel_ratio())
+  })
   
   # Create a reactive value to store the selected scenario
   # This ensures we have a valid value from the start
@@ -1415,22 +1438,31 @@ server <- function(input, output) {
   
   # Plot outputs - render directly from the chart data
   output$chart1 <- renderPlot({
+    req(device_pixel_ratio())
+    # pixel_ratio <- device_pixel_ratio()
     create_plot(mortality_chart_data())
   }, res = 64) %>% bindCache(input$scenario_select, input$grp_select)
 
   output$chart2 <- renderPlot({
+    req(device_pixel_ratio())
     create_plot(los_chart_data())
   }, res = 64) %>% bindCache(input$scenario_select, input$grp_select)
   
   output$chart3 <- renderPlot({
+    req(device_pixel_ratio())
     create_plot(resp_chart_data())
   }, res = 64) %>% bindCache(input$scenario_select, input$grp_select)
   
   output$chart4 <- renderPlot({
+    req(device_pixel_ratio())
     create_plot(handover_chart_data())
   }, res = 64) %>% bindCache(input$scenario_select, input$grp_select)
   
   outputOptions(output, "scenario_table", suspendWhenHidden = FALSE)
+  outputOptions(output, "chart1", suspendWhenHidden = FALSE)
+  outputOptions(output, "chart2", suspendWhenHidden = FALSE)
+  outputOptions(output, "chart3", suspendWhenHidden = FALSE)
+  outputOptions(output, "chart4", suspendWhenHidden = FALSE)
   
 }
 
