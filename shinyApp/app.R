@@ -30,7 +30,8 @@ app_colours <- c(
 
 gen_html_text <- function(emph_text){
   str_c(
-    "<span style='font-weight:bold;font-size:30pt;'>",
+    # "<span style='font-weight:bold;font-size:30pt;'>",
+    "<span style='font-weight:bold;'>",
         emph_text,
         # "</span><br><span style='font-size:15pt'>",
         # sub_text,
@@ -1265,9 +1266,7 @@ server <- function(input, output) {
   
   
   # Create a function to generate plots with consistent formatting
-  create_plot <- function(data) {
-    
-    browser()
+  create_plot <- function(data, font_size = 15) {
     
     if (is.null(data) || nrow(data) == 0) {
       # Return an empty plot for debugging
@@ -1280,7 +1279,7 @@ server <- function(input, output) {
       ggplot(aes(x = impact, y = value, fill = impact)) +
       geom_col() +
       geom_hline(aes(yintercept = target), linetype = 2, size = 2, colour = "grey30") +
-      ggfx::with_outer_glow(geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
+      ggfx::with_outer_glow(geom_textbox(aes(label = value_label), size = font_size, fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
                             colour = "white", x_offset = 0, y_offset = 0, expand = 12.5, sigma = 0) +
       theme_void() +
       scale_y_continuous(expand = expansion(mult = c(0, 0.8))) +
@@ -1292,8 +1291,8 @@ server <- function(input, output) {
             axis.line.x = element_line(linewidth = 2.5, colour = "grey30"),
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
-            plot.title = element_textbox(size = 20, hjust = 0.5),
-            plot.caption = element_textbox(size = 20, hjust = 0.5, margin = margin(t = 10), face = "bold")
+            plot.title = element_textbox(size = 1.5*font_size, hjust = 0.5),
+            plot.caption = element_textbox(size = 1.5*font_size, hjust = 0.5, margin = margin(t = 10), face = "bold")
       ) +
       labs(caption = data$sub_text[1], y = "", x = "")
   }
