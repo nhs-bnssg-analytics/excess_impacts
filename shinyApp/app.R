@@ -29,7 +29,7 @@ app_colours <- c(
 )
 
 gen_html_text <- function(emph_text){
-  str_c("<span style='font-weight:bold;font-size:30pt;'>",
+  str_c("<span style='font-weight:bold;font-size:34pt;'>",
         emph_text,
         # "</span><br><span style='font-size:15pt'>",
         # sub_text,
@@ -769,7 +769,7 @@ div(
   ),
   # Main layout - 3 columns
   layout_columns(
-    height = "calc(100vh - 280px)",
+    height = "calc(100vh - 270px)",
     col_widths = c(5, 4, 3),
     gap = "0px",
     class = "layout-column-no-gap flex-fill", 
@@ -1254,7 +1254,7 @@ server <- function(input, output) {
       ggfx::with_outer_glow(geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
                             colour = "white", x_offset = 0, y_offset = 0, expand = 12.5, sigma = 0) +
       theme_void() +
-      scale_y_continuous(expand = expansion(mult = c(0, 0.5))) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.55))) +
       scale_fill_manual(values = unname(app_colours)) +
       theme(legend.position = "off",
             plot.margin = margin(0, 0, 0, 0, "pt"),
@@ -1386,21 +1386,120 @@ server <- function(input, output) {
   })
   
   # Plot outputs - render directly from the chart data
-  output$chart1 <- renderPlot({
-    create_plot(mortality_chart_data())
-  }) %>% bindCache(input$scenario_select, input$grp_select)
+  output$chart1 <- renderImage({
+    # Create a temporary file for the PNG
+    temp_png <- tempfile(fileext = ".png")
+    
+    # Save the plot directly to PNG
+    ggsave(
+      filename = temp_png,
+      plot = create_plot(mortality_chart_data()),
+      device = "png",
+      width = 10,
+      height = 2.25,
+      units = "in",
+      dpi = 300
+    )
+    
+    # Return a list with the information needed for renderImage
+    list(
+      src = temp_png,
+      contentType = "image/png",
+      width = "100%",
+      height = "auto",
+      alt = "ggplot2 Chart",
+      # Delete the temporary file when the session ends
+      deleteFile = TRUE
+    )
+    
+  }, deleteFile = TRUE)
+  
+  # Plot outputs - render directly from the chart data
+  output$chart2 <- renderImage({
+    # Create a temporary file for the PNG
+    temp_png <- tempfile(fileext = ".png")
+    
+    # Save the plot directly to PNG
+    ggsave(
+      filename = temp_png,
+      plot = create_plot(los_chart_data()),
+      device = "png",
+      width = 10,
+      height = 2.25,
+      units = "in",
+      dpi = 300
+    )
+    
+    # Return a list with the information needed for renderImage
+    list(
+      src = temp_png,
+      contentType = "image/png",
+      width = "100%",
+      height = "auto",
+      alt = "ggplot2 Chart",
+      # Delete the temporary file when the session ends
+      deleteFile = TRUE
+    )
+    
+  }, deleteFile = TRUE)
+  
+  # Plot outputs - render directly from the chart data
+  output$chart3 <- renderImage({
+    # Create a temporary file for the PNG
+    temp_png <- tempfile(fileext = ".png")
+    
+    # Save the plot directly to PNG
+    ggsave(
+      filename = temp_png,
+      plot = create_plot(resp_chart_data()),
+      device = "png",
+      width = 10,
+      height = 2.25,
+      units = "in",
+      dpi = 300
+    )
+    
+    # Return a list with the information needed for renderImage
+    list(
+      src = temp_png,
+      contentType = "image/png",
+      width = "100%",
+      height = "auto",
+      alt = "ggplot2 Chart",
+      # Delete the temporary file when the session ends
+      deleteFile = TRUE
+    )
+    
+  }, deleteFile = TRUE)
+  # Plot outputs - render directly from the chart data
+  output$chart4 <- renderImage({
+    # Create a temporary file for the PNG
+    temp_png <- tempfile(fileext = ".png")
+    
+    # Save the plot directly to PNG
+    ggsave(
+      filename = temp_png,
+      plot = create_plot(handover_chart_data()),
+      device = "png",
+      width = 10,
+      height = 2.25,
+      units = "in",
+      dpi = 300
+    )
+    
+    # Return a list with the information needed for renderImage
+    list(
+      src = temp_png,
+      contentType = "image/png",
+      width = "100%",
+      height = "auto",
+      alt = "ggplot2 Chart",
+      # Delete the temporary file when the session ends
+      deleteFile = TRUE
+    )
+    
+  }, deleteFile = TRUE)
 
-  output$chart2 <- renderPlot({
-    create_plot(los_chart_data())
-  }) %>% bindCache(input$scenario_select, input$grp_select)
-  
-  output$chart3 <- renderPlot({
-    create_plot(resp_chart_data())
-  }) %>% bindCache(input$scenario_select, input$grp_select)
-  
-  output$chart4 <- renderPlot({
-    create_plot(handover_chart_data())
-  }) %>% bindCache(input$scenario_select, input$grp_select)
   
   outputOptions(output, "scenario_table", suspendWhenHidden = FALSE)
   
