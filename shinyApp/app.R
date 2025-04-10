@@ -105,7 +105,7 @@ ui <- page_sidebar(
 html, body, .bslib-page-fill {
   height: 100vh !important;
   max-height: 100vh !important;
-  overflow: hidden !important;
+  /*overflow: hidden !important;/
   margin: 0 !important;
   padding: 0 !important;
 }
@@ -494,7 +494,7 @@ tags$script(HTML("
 
   ),
 
-style = "height: 100vh; max-height: 100vh; overflow: hidden;",
+style = "height: 100vh; max-height: 100vh;",
 
 sidebar = sidebar(
   id = "sidebar",
@@ -769,7 +769,7 @@ div(
   ),
   # Main layout - 3 columns
   layout_columns(
-    height = "72vh",
+    height = "80vh",
     col_widths = c(5, 4, 3),
     gap = "0px",
     class = "layout-column-no-gap flex-fill", 
