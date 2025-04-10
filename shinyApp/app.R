@@ -91,7 +91,7 @@ min_report_date <- min(impacts_output_raw$report_date)
 static_report_date_line <- HTML(glue::glue(
   # "<span><h5><strong>Excess Impacts:</strong> a what-if analysis based on the week <strong>{format(max_report_date-ddays(7), '%d')}-{format(max_report_date, '%d %B %Y')}</strong></span></h5>"
   "<span style='line-height: 1'>
-  <h5><strong>Excess Impacts:</strong> a what-if analysis</h5>
+  <p><h5><strong>Excess Impacts:</strong> a what-if analysis</h5></p>
   <p style='font-size: 0.8em; font-weight: lighter;'>open sidebar for more information & options</p>
 </span>"
 ))
@@ -472,7 +472,7 @@ html, body, .bslib-page-fill {
   margin-top: 0 !important;
 }
 .app-standard-text {
-  font-size: 0.8vw !important; /* Choose your preferred size */
+  font-size: 0.75vw !important; /* Choose your preferred size */
   line-height: 1.5 !important;
   margin: 5px 0 !important;
   font-weight: 400 !important;
@@ -508,7 +508,7 @@ sidebar = sidebar(
     id = "report_date",
     HTML(glue::glue(
       # "<span><h4><strong>Excess Impacts</strong> </br> A what-if analysis</h4> Based on the week </br> <strong> {format(max_report_date-ddays(7), '%d')}-{format(max_report_date, '%d %B %Y')}</strong></span>"
-      "<span><h4><strong>Excess Impacts</strong> </br> A what-if analysis</h4></span>"
+      "<span><h5><strong>Excess Impacts</strong> </br> A what-if analysis</h5></span>"
     ))
   ),
   HTML("<span><p>For comments or questions, email Nick Howlett (Modelling and Analytics, ICB): <a href='mailto:nick.howlett5@nhs.net'>nick.howlett5@nhs.net</a></h5></p><span>"),
@@ -749,19 +749,19 @@ div(
   # Top heading paragraph
   card(
     full_screen = FALSE,
-    height = "100px",
+    height = "6vh",
     class = "no-border-no-pad header-card",
-    style = "overflow: visible !important; margin-bottom: 20px; flex-shrink: 0;",
-    gap = "0px",
+    style = "overflow: visible !important; margin-bottom: 2vh; flex-shrink: 0;",
+    gap = "1vh",
     uiOutput("header")
   ),
   
   # Scenario descriptions - centered VS version
   card(
     full_screen = FALSE,
-    height = "100px",
+    height = "8vh",
     class = "no-border-no-pad",
-    style = "overflow: visible !important; margin-bottom: 20px; flex-shrink: 0;",
+    style = "overflow: visible !important; margin-bottom: 2vh; flex-shrink: 0;",
     div(
       class = "scenario-header",
       uiOutput("scenario_text")
@@ -769,7 +769,7 @@ div(
   ),
   # Main layout - 3 columns
   layout_columns(
-    height = "calc(100vh - 270px)",
+    height = "72vh",
     col_widths = c(5, 4, 3),
     gap = "0px",
     class = "layout-column-no-gap flex-fill", 
@@ -1229,6 +1229,7 @@ server <- function(input, output, session) {
   })
   
   resp_chart_data <- reactive({
+    req(input$grp_select)
     get_chart_data("om1b") %>%
       filter(!str_detect(impact, "n_exposure|raw"))
   })
@@ -1255,7 +1256,7 @@ server <- function(input, output, session) {
       ggfx::with_outer_glow(geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
                             colour = "white", x_offset = 0, y_offset = 0, expand = 12.5, sigma = 0) +
       theme_void() +
-      scale_y_continuous(expand = expansion(mult = c(0, 0.55))) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.62))) +
       scale_fill_manual(values = unname(app_colours)) +
       theme(legend.position = "off",
             plot.margin = margin(0, 0, 0, 0, "pt"),
@@ -1291,9 +1292,9 @@ server <- function(input, output, session) {
                         "WGH" = "the emergency department at WGH")
     
     h5(
-      style = "line-height: 1.5; margin: 0;",  # Increased line-height from 1.4 to 1.5
+      style = "line-height: 1.2; margin: 0;",  # Increased line-height from 1.4 to 1.5
       HTML(glue::glue(
-        "<p class='app-standard-text' style='margin: 5px 0; max-height: none;'><span><strong>Between {format_week_interval(max_report_date)}</strong>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
+        "<p class='app-standard-text' style='margin: 2.5px 0; max-height: none;'><span><strong>Between {format_week_interval(max_report_date)}</strong>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
       ))
     )
   })
@@ -1306,13 +1307,13 @@ server <- function(input, output, session) {
     dta_queue <- n_dta_norm()
     
     HTML(glue::glue('
-<div style="display: flex; align-items: flex-start; width: 100%; font-size: 0.7vw;">
+<div style="display: flex; align-items: flex-start; width: 100%; font-size: 0.85vw;">
   <div style="width: 15%; flex: none;"></div>
   <div style="width: 41.67%; display: flex; align-items: flex-start; justify-content: flex-end; padding-right: 10px;">
     <span class="scenario-indicator" style="background-color: {app_colours["actual"]}; margin-right: 0.3vw; margin-top: 0.2vw;"></span>
     <span style="font-weight: 500; color: #333;"><strong>Actual</strong>: where admission waits were <strong>{dta_time} hours</strong> & the Decision to Admit (DTA) queue was <strong>{dta_queue}</strong> of the bed capacity, on average</span>
   </div>
-  <div style="width: 3.33%; text-align: center; font-size: 0.9vw; color: #666; font-weight: bold;">VS</div>
+  <div style="width: 3.33%; text-align: center; font-size: 1vw; color: #666; font-weight: bold;">VS</div>
   <div style="width: 40%; display: flex; align-items: flex-start; padding-left: 10px;">
     <span class="scenario-indicator" style="background-color: {app_colours["hypothetical"]}; margin-right: 0.3vw; margin-top: 0.2vw;"></span>
     <span style="font-weight: 500; color: #333;"><strong>Hypothetical</strong>: If medical waits for admission & DTA queue were kept <strong>under 1 hour</strong> and <strong>25%</strong> of ED bed capacity</span>
@@ -1397,9 +1398,9 @@ server <- function(input, output, session) {
       plot = create_plot(mortality_chart_data()),
       device = "png",
       width = 10,
-      height = 2.25,
+      height = 2,
       units = "in",
-      dpi = 300
+      dpi = 120
     )
     
     # Return a list with the information needed for renderImage
@@ -1426,9 +1427,9 @@ server <- function(input, output, session) {
       plot = create_plot(los_chart_data()),
       device = "png",
       width = 10,
-      height = 2.25,
+      height = 2,
       units = "in",
-      dpi = 300
+      dpi = 120
     )
     
     # Return a list with the information needed for renderImage
@@ -1455,9 +1456,9 @@ server <- function(input, output, session) {
       plot = create_plot(resp_chart_data()),
       device = "png",
       width = 10,
-      height = 2.25,
+      height = 2,
       units = "in",
-      dpi = 300
+      dpi = 120
     )
     
     # Return a list with the information needed for renderImage
@@ -1483,9 +1484,9 @@ server <- function(input, output, session) {
       plot = create_plot(handover_chart_data()),
       device = "png",
       width = 10,
-      height = 2.25,
+      height = 2,
       units = "in",
-      dpi = 300
+      dpi = 120
     )
     
     # Return a list with the information needed for renderImage
