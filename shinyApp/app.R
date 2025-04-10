@@ -749,10 +749,10 @@ div(
   # Top heading paragraph
   card(
     full_screen = FALSE,
-    height = "6vh",
+    height = "8vh",
     class = "no-border-no-pad header-card",
-    style = "overflow: visible !important; margin-bottom: 2vh; flex-shrink: 0;",
-    gap = "1vh",
+    style = "overflow: visible !important; margin-bottom: 3vh; flex-shrink: 0;",
+    gap = "0vh",
     uiOutput("header")
   ),
   
