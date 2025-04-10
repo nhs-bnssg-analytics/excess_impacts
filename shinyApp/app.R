@@ -29,7 +29,9 @@ app_colours <- c(
 )
 
 gen_html_text <- function(emph_text){
-  str_c("<span style='font-weight:bold;font-size:30pt;'>",
+  str_c(
+        # "<span style='font-weight:bold;font-size:30pt;'>",
+        "<span class='primary-text'>",
         emph_text,
         # "</span><br><span style='font-size:15pt'>",
         # sub_text,
@@ -100,384 +102,6 @@ static_report_date_line <- HTML(glue::glue(
 ui <- page_sidebar(
   
   tags$head(
-    tags$style("
-  /* Main page and container settings */
-html, body, .bslib-page-fill {
-  height: 100vh !important;
-  max-height: 100vh !important;
-  overflow: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.bslib-page-fill {
-  background-color: #ffffff;
-}
-
-.main-content-container {
-  padding: 5px 20px !important;
-  /* height: 100vh !important;  */
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-}
-
-/* Flex utilities */
-.flex-fill {
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-
-/* Card styling */
-.card {
-  border-radius: 0 !important;
-}
-
-.no-border {
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.no-border-no-pad {
-  padding: 0px !important;
-  margin: 0 !important;
-  border: none !important;
-  box-shadow: none !important;
-  --bs-card-spacer-y: 0 !important;
-  --bs-card-spacer-x: 0 !important;
-}
-
-.no-border-no-pad-text-center {
-  padding: 0px !important;
-  margin: 0 !important;
-  border: none !important;
-  box-shadow: none !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important; /* Vertical centering */
-  height: 100%;
-  --bs-card-spacer-y: 0 !important;
-  --bs-card-spacer-x: 0 !important;
-}
-
-.no-border-no-pad-text-center .card-body {
-  display: flex !important;
-  align-items: center !important; /* Vertical centering */
-  justify-content: flex-start !important;
-  height: 100% !important;
-  padding: 10px !important;
-}
-
-.no-border-no-pad-text-center p {
-  margin: 0 !important;
-}
-
-.header-card {
-  margin-bottom: 5px !important;
-  min-height: 50px !important;
-}
-
-/* Layout utilities */
-.layout-column-no-gap {
-  --bs-layout-columns-gap: 0 !important;
-  --bs-layout-rows-gap: 0 !important;
-}
-
-.bslib-column-wrap {
-  overflow: hidden !important;
-}
-
-.bslib-layout-column {
-  overflow: hidden !important;
-}
-
-/* Sidebar styling */
-.bslib-sidebar-layout {
-  height: 100vh !important;
-  max-height: 100vh !important;
-  overflow: hidden !important;
-}
-
-.bslib-sidebar-layout > .bslib-sidebar-layout-panel {
-  height: 100vh !important;
-  max-height: 100vh !important;
-  overflow: auto !important;
-}
-
-/* Main layout container */
-#main_layout {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-  min-height: 0 !important;
-}
-
-/* Chart container */
-.chart-container {
-  flex: 1 !important;
-  overflow: hidden !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-
-/* Text styling */
-.primary-text {
-  font-size: 25pt;
-  margin-bottom: 1rem;
-}
-
-.secondary-text {
-  font-size: 14px !important;
-  margin-bottom: 0.5rem !important;
-  line-height: 1.4 !important;
-}
-
-/* Form styling */
-.form-group {
-  margin-bottom: 0 !important;
-  margin-top: 0 !important;
-  padding-bottom: 0 !important;
-  padding-top: 0 !important;
-}
-
-.selectize-control {
-  margin-bottom: 0 !important;
-  margin-top: 0 !important;
-}
-
-/* Tooltip customization */
-.tooltip-inner {
-  background-color: white !important;
-  color: black !important;
-  max-width: none !important;
-  padding: 10px !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-/* Divider styling */
-.column-divider {
-  border-right: 3px solid #dee2e6;
-  height: 100%;
-  padding-right: 1rem;
-}
-
-.vertical-line {
-  position: absolute;
-  left: 49.5%;
-  top: 0;
-  bottom: 0;
-  width: 10px;
-  border-left: 4px solid darkgray;
-  z-index: 1000;
-}
-
-/* Updated scenario grid styling */
-  .scenario-grid {
-    display: grid;
-    grid-template-columns: 5fr 4fr 3fr;
-    width: 100%;
-    min-height: 60px;
-    padding: 0 10px;
-    align-items: center;
-    white-space: normal;
-    overflow: visible !important;
-  }
-  
-  .scenario-vs {
-    text-align: center;
-    font-size: 24px;
-    color: #666;
-    font-weight: bold;
-    margin: 0;
-  }
-
-.scenario-label {
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.scenario-indicator {
-  width: 20px;
-  height: 20px;
-  margin-right: 8px;
-  border-radius: 3px;
-}
-
-.scenario-arrow {
-  font-size: 24px;
-  margin: 0 10px;
-  color: #555;
-}
-
-.scenario-bracket {
-  font-size: 40px;
-  font-weight: 300;
-  margin: 0 5px;
-  color: #555;
-}
-
-/* Table styling */
-.custom-table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 20px 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.custom-table th {
-  background-color: #2c3e50;
-  color: white;
-  padding: 12px;
-  text-align: left;
-  border-bottom: 2px solid #1a252f;
-}
-
-.custom-table td {
-  padding: 10px;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.custom-table tr:nth-child(even) {
-  background-color: #f8f9fa;
-}
-
-.custom-table tr:hover {
-  background-color: #e9ecef;
-  transition: background-color 0.2s ease;
-}
-
-.custom-table .number-cell {
-  text-align: right;
-  color: #2980b9;
-  font-weight: 500;
-}
-
-.custom-table .highlight {
-  color: #e74c3c;
-  font-weight: bold;
-}
-
-/* Custom styles for sidebar toggle */
-      .sidebar-toggle-label {
-        margin-left: 8px;
-        font-size: 14px;
-        font-weight: 500;
-        display: inline-block;
-        vertical-align: middle;
-      }
-      
-      /* Hide label when sidebar is open */
-      .bslib-sidebar-layout.sidebar-open .sidebar-toggle-label {
-        display: none;
-      }
-
-/* Radio-table wrapper */
-.radio-table-wrapper {
-  position: relative;
-  margin-bottom: 20px;
-}
-
-.radio-buttons-column {
-  position: absolute;
-  top: 45px;
-  left: 5px;
-  z-index: 10;
-  width: 60px;
-}
-
-.radio-buttons-column .radio {
-  margin: 0 !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 46px !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-}
-
-.radio-buttons-column .radio label {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.radio-buttons-column .radio span {
-  display: none;
-}
-
-.table-container {
-  margin-left: 0;
-}
-
-.content-table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid #ddd;
-}
-
-.content-table th, .content-table td {
-  padding: 12px 15px !important;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-  height: 22px !important;
-}
-
-.content-table th {
-  background-color: #f5f5f5;
-  font-weight: bold;
-}
-
-.col-select {
-  width: 60px;
-}
-
-.content-row:hover {
-  background-color: #f9f9f9;
-}
-
-.content-row.active {
-  background-color: #e8f0fe;
-}
-
-.shiny-options-group {
-  position: relative;
-  top: 54px !important;
-  margin-top: 0 !important;
-}
-
-.radio-buttons-column .radio:first-child {
-  margin-bottom: 15px !important;
-}
-
-.radio-buttons-column .radio:last-child {
-  margin-top: 10px !important;
-}
-/* Add these if not already covered */
-.bslib-gap-spacing {
-  padding-top: 0 !important;
-  margin-top: 0 !important;
-}
-
-.html-fill-container {
-  padding-top: 0 !important;
-  margin-top: 0 !important;
-}
-.app-standard-text {
-  font-size: 16px !important; /* Choose your preferred size */
-  line-height: 1.5 !important;
-  margin: 5px 0 !important;
-  font-weight: 400 !important;
-}
-  "),
 tags$script(HTML("
       $(document).ready(function() {
         // Add text to the sidebar toggle button after a short delay to ensure DOM is ready
@@ -490,7 +114,90 @@ tags$script(HTML("
           }
         }, 100);
       });
-    "))
+    ")),
+# Script to update CSS variables based on viewport width
+tags$script("
+      // Wait for Shiny to be fully initialized
+      $(document).on('shiny:connected', function(event) {
+        function updateFontSizes() {
+          // Get viewport width
+          var width = window.innerWidth;
+          var height = window.innerHeight;
+          
+          // Read slider values directly from DOM
+          var primaryMultiplier = parseFloat($('#primaryTextSize').val() || 1);
+          var secondaryMultiplier = parseFloat($('#secondaryTextSize').val() || 0.7);
+          
+          // Calculate sizes
+          var baseSize = width / 50;
+          var primarySize = baseSize * primaryMultiplier;
+          var secondarySize = baseSize * secondaryMultiplier;
+          
+          // Apply limits
+          primarySize = Math.min(Math.max(primarySize, 12), 48);
+          secondarySize = Math.min(Math.max(secondarySize, 10), 36);
+          
+          // Update CSS variables
+          document.documentElement.style.setProperty('--primary-font-size', primarySize + 'px');
+          document.documentElement.style.setProperty('--secondary-font-size', secondarySize + 'px');
+          
+          // Send values to Shiny using the correct method
+          Shiny.setInputValue('viewport_width', width);
+          Shiny.setInputValue('viewport_height', height);
+          Shiny.setInputValue('calculated_primary_size', primarySize);
+          Shiny.setInputValue('calculated_secondary_size', secondarySize);
+          
+          console.log('Updated font sizes. Viewport: ' + width + 'x' + height + 
+                      ' Primary: ' + primarySize + 'px, Secondary: ' + secondarySize + 'px');
+        }
+        
+        // Initial update
+        updateFontSizes();
+        
+        // Update on window resize with debounce
+        var resizeTimer;
+        $(window).on('resize', function() {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(updateFontSizes, 100);
+        });
+        
+        // Update when sliders change
+        $(document).on('input change', '#primaryTextSize, #secondaryTextSize', function() {
+          updateFontSizes();
+        });
+        
+        // Execute again after a short delay to ensure everything is loaded
+        setTimeout(updateFontSizes, 500);
+      });
+    "),
+  # Additional JavaScript to ensure inputs are sent
+  tags$script("
+    // Additional method to ensure viewport size is sent
+    Shiny.addCustomMessageHandler('requestViewportSize', function(message) {
+      var width = window.innerWidth;
+      var height = window.innerHeight;
+      Shiny.setInputValue('viewport_width_requested', width);
+      Shiny.setInputValue('viewport_height_requested', height);
+      console.log('Viewport size requested and sent: ' + width + 'x' + height);
+    });
+  "),
+
+tags$style("
+      :root {
+        --primary-font-size: 40px;
+        --secondary-font-size: 18px;
+      }
+      
+      .primary-text {
+        font-size: var(--primary-font-size);
+        margin-bottom: 1rem;
+      }
+      
+      .secondary-text {
+        font-size: var(--secondary-font-size);
+        margin-bottom: 1rem;
+      }
+    ")
 
   ),
 
@@ -612,75 +319,8 @@ sidebar = sidebar(
           });
         });
       ")),
-      
-      # CSS styles for our table
-      tags$style(HTML("
-        /* Hide the actual radio buttons from Shiny */
-        #scenario_select { 
-          display: none; 
-        }
-        
-        /* Table styling */
-        .scenario-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 15px 0;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        
-        .scenario-table th, .scenario-table td {
-          padding: 12px 15px;
-          text-align: left;
-          border: 1px solid #ddd;
-        }
-        
-        .scenario-table th {
-          background-color: #f5f5f5;
-          font-weight: bold;
-        }
-        
-        /* Row styling */
-        .scenario-row {
-          cursor: pointer;
-          transition: background-color 0.2s;
-        }
-        
-        .scenario-row:hover {
-          background-color: #f0f0f0;
-        }
-        
-        .scenario-row.selected {
-          background-color: #e0e0e0;
-        }
-        
-        /* Radio cell styling */
-        .radio-cell {
-          width: 60px;
-          text-align: center;
-          vertical-align: middle;
-        }
-        
-        /* Radio container for better centering */
-        .radio-container {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          width: 100%;
-          height: 100%;
-        }
-        
-        /* Make the radio buttons slightly larger */
-        .radio-container input[type='radio'] {
-          width: 18px;
-          height: 18px;
-          margin: 0;
-          cursor: pointer;
-          /* Radio color is now default blue */
-        }
-      "))
     ),
   
-  # uiOutput("scenario_table"),
 
 HTML("
 <p><strong>More information</strong></p>
@@ -735,7 +375,7 @@ There could still be:</p>
 ),
 div(
   class = "main-content-container",
-  
+  verbatimTextOutput("debugText"),
   # Only show main heading when sidebar is closed
   conditionalPanel(
     condition = "input.sidebar !== true",
@@ -892,7 +532,74 @@ div(
 )
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
+  
+  viewportDims <- reactiveValues(
+    width = 1200,
+    height = 800
+  )
+  
+  # Request viewport size when session starts
+  observe({
+    session$sendCustomMessage("requestViewportSize", list())
+  })
+  
+  # Update from JavaScript inputs when available
+  observe({
+    # Try first method
+    if (!is.null(input$viewport_width)) {
+      viewportDims$width <- input$viewport_width
+      viewportDims$height <- input$viewport_height
+    }
+    
+    # Try backup method
+    if (!is.null(input$viewport_width_requested)) {
+      viewportDims$width <- input$viewport_width_requested
+      viewportDims$height <- input$viewport_height_requested
+    }
+  })
+  
+  # Calculate font sizes on the server side as a backup
+  fontSizes <- reactive({
+    # Base size calculation using viewport width
+    baseSize <- viewportDims$width / 50
+    
+    # Apply user's multipliers
+    primarySize <- baseSize * input$primaryTextSize
+    secondarySize <- baseSize * input$secondaryTextSize
+    
+    # Ensure reasonable bounds
+    primarySize <- min(max(primarySize, 12), 48)
+    secondarySize <- min(max(secondarySize, 10), 36)
+    
+    list(
+      primary = primarySize,
+      secondary = secondarySize
+    )
+  })
+  
+  # Optional debug information
+  output$debugText <- renderPrint({
+    # Primary values from JavaScript
+    cat("Viewport dimensions (JS): ", input$viewport_width %||% "N/A", " x ", 
+        input$viewport_height %||% "N/A", "\n")
+    
+    # Backup values from secondary method
+    cat("Viewport dimensions (requested): ", input$viewport_width_requested %||% "N/A", " x ", 
+        input$viewport_height_requested %||% "N/A", "\n")
+    
+    # Values used in calculations
+    cat("Viewport dimensions (used): ", viewportDims$width, " x ", viewportDims$height, "\n\n")
+    
+    # Font sizes
+    cat("Calculated primary size (JS): ", input$calculated_primary_size %||% "N/A", "px\n")
+    cat("Calculated secondary size (JS): ", input$calculated_secondary_size %||% "N/A", "px\n")
+    
+    # Backup font sizes calculated on server
+    cat("Calculated primary size (server): ", round(fontSizes()$primary, 1), "px\n")
+    cat("Calculated secondary size (server): ", round(fontSizes()$secondary, 1), "px\n\n")
+
+  })
   
   # Create a reactive value to store the selected scenario
   # This ensures we have a valid value from the start
@@ -972,72 +679,7 @@ server <- function(input, output) {
             tags$td("0% of ED bed capacity")
           )
         )
-      ),
-      
-      # CSS styles for our table
-      tags$style(HTML("
-        /* Hide the actual radio buttons from Shiny */
-        #scenario_select { 
-          display: none; 
-        }
-        
-        /* Table styling */
-        .scenario-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 15px 0;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        
-        .scenario-table th, .scenario-table td {
-          padding: 12px 15px;
-          text-align: left;
-          border: 1px solid #ddd;
-        }
-        
-        .scenario-table th {
-          background-color: #f5f5f5;
-          font-weight: bold;
-        }
-        
-        /* Row styling */
-        .scenario-row {
-          cursor: pointer;
-          transition: background-color 0.2s;
-        }
-        
-        .scenario-row:hover {
-          background-color: #f0f0f0;
-        }
-        
-        .scenario-row.selected {
-          background-color: #e0e0e0;
-        }
-        
-        /* Radio cell styling */
-        .radio-cell {
-          width: 60px;
-          text-align: center;
-          vertical-align: middle;
-        }
-        
-        /* Radio container for better centering */
-        .radio-container {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          width: 100%;
-          height: 100%;
-        }
-        
-        /* Make the radio buttons slightly larger */
-        .radio-container input[type='radio'] {
-          width: 18px;
-          height: 18px;
-          margin: 0;
-          cursor: pointer;
-        }
-      "))
+      )
     )
   })
   
@@ -1239,7 +881,7 @@ server <- function(input, output) {
   
   
   # Create a function to generate plots with consistent formatting
-  create_plot <- function(data) {
+  create_plot <- function(data, font_size= 20) {
     if (is.null(data) || nrow(data) == 0) {
       # Return an empty plot for debugging
       return(ggplot() + 
@@ -1251,7 +893,7 @@ server <- function(input, output) {
       ggplot(aes(x = impact, y = value, fill = impact)) +
       geom_col() +
       geom_hline(aes(yintercept = target), linetype = 2, size = 2, colour = "grey30") +
-      ggfx::with_outer_glow(geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
+      ggfx::with_outer_glow(geom_textbox(aes(label = value_label), size = font_size/3, fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
                             colour = "white", x_offset = 0, y_offset = 0, expand = 12.5, sigma = 0) +
       theme_void() +
       scale_y_continuous(expand = expansion(mult = c(0, 0.5))) +
@@ -1263,8 +905,8 @@ server <- function(input, output) {
             axis.line.x = element_line(linewidth = 2.5, colour = "grey30"),
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
-            plot.title = element_textbox(size = 20, hjust = 0.5),
-            plot.caption = element_textbox(size = 20, hjust = 0.5, margin = margin(t = 10), face = "bold")
+            plot.title = element_textbox(size = font_size/2, hjust = 0.5),
+            plot.caption = element_textbox(size = font_size/2, hjust = 0.5, margin = margin(t = 10), face = "bold")
       ) +
       labs(caption = data$sub_text[1], y = "", x = "")
   }
@@ -1387,7 +1029,8 @@ server <- function(input, output) {
   
   # Plot outputs - render directly from the chart data
   output$chart1 <- renderPlot({
-    create_plot(mortality_chart_data())
+    req(input$calculated_primary_size)
+    create_plot(mortality_chart_data(), font_size = input$calculated_primary_size)
   }) %>% bindCache(input$scenario_select, input$grp_select)
 
   output$chart2 <- renderPlot({
