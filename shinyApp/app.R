@@ -1256,7 +1256,7 @@ server <- function(input, output, session) {
       ggfx::with_outer_glow(geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
                             colour = "white", x_offset = 0, y_offset = 0, expand = 12.5, sigma = 0) +
       theme_void() +
-      scale_y_continuous(expand = expansion(mult = c(0, 0.65))) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.675))) +
       scale_fill_manual(values = unname(app_colours)) +
       theme(legend.position = "off",
             plot.margin = margin(0, 0, 0, 0, "pt"),
