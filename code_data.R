@@ -29,6 +29,7 @@ FROM (
 report_end <- max_date
 report_start <- report_end - ddays(6)
 
+
 n_hour <- 2
 pre_window_days <- 60
 
@@ -43,11 +44,76 @@ site_resus_maj <- tibble(site = c("BRISTOL ROYAL INFIRMARY", "WESTON GENERAL HOS
 mort_mod <- readRDS("data/mort_effects_output.RDS") %>% `[[`("mort_mod_raw")
 readm_mod <- readRDS("data/readm_effects_output.RDS") %>% `[[`("readm_mod_raw")
 los_mod <- readRDS("data/los_effect_output_reformulated.RDS") %>% `[[`("los_mod")
-vw_impute_rec <- readRDS("data/vw_imput_rec.RDS")
+vw_impute_rec <- readRDS("data/vw_impute_rec.RDS")
 
 handover_coef <- readRDS("data/avoidable_impacts_handover_coef.RDS")
 ed_time_coef <- readRDS("data/avoidable_impacts_ed_time_coef.RDS")
 resp_coef <- readRDS("data/avoidable_impacts_resp_coef.RDS")
+
+
+# NCTR data - we make assumption NCTR number is constant across the week
+
+nctr_df <-
+  RODBC::sqlQuery(
+    con,
+    glue::glue(
+    "SELECT
+       [RN]
+      ,[Organisation_Code_Provider]
+      ,[Organisation_Code_Commissioner]
+      ,[Census_Date]
+      ,[Month_Date]
+      ,[Month]
+      ,[Day_Of_Week]
+      ,[Week_Start_Date]
+      ,[NHS_Number]
+      ,[Person_Stated_Gender_Code]
+      ,[Person_Age]
+      ,[CDS_Unique_Identifier]
+      ,[Sub_ICB_Location]
+      ,[Organisation_Site_Code]
+      ,[Current_Ward]
+      ,[Specialty_Code]
+      ,[Bed_Type]
+      ,[Date_Of_Admission]
+      ,[BNSSG]
+      ,[Local_Authority]
+      ,[Criteria_To_Reside]
+      ,[Date_NCTR]
+      ,[Current_LOS]
+      ,[Days_NCTR]
+      ,[Days_NCTR_On_Current_Code]
+      ,[Current_Delay_Code]
+      ,[Local_Authority_grouped]
+      ,[Site_Name]
+      ,[Current_Delay_Code_Standard]
+      ,[Current_Delay_Code_Detailed]
+      ,[Acute Community split]
+      ,[Current_Covid_Status]
+      ,[Planned_Date_Of_Discharge]
+      ,[Date_Toc_Form_Completed]
+      ,[Toc_Form_Status]
+      ,[Discharge_Pathway]
+      ,[DER_File_Name]
+      ,[DER_Load_Timestamp]
+  FROM Analyst_SQL_Area.dbo.vw_NCTR_Status_Report_Daily_JI
+  where Census_Date = '{report_start}'"
+  )) %>%
+  filter(Criteria_To_Reside == "N") %>%
+  summarise(nctr = n(), .by = Site_Name)
+
+# Training the imputation model for VW score (SUS is too late)
+# Uncomment to retrain
+
+vw_data <- readRDS("data/mort_effects_output.RDS") %>% `[[`("mod_df") 
+
+vw_impute_rec <- recipe(mort_30 ~ ., data = vw_data) %>%
+  # step_impute_bag(vw_score, all_predictors(), trees = 100) %>%
+  step_impute_knn(vw_score, all_predictors()) %>%
+  prep(training = vw_data)
+
+saveRDS(vw_impute_rec, file = "data/vw_impute_rec.RDS")
+
 
 get_impact_data <- function(report_start, report_end){
   
@@ -133,6 +199,7 @@ get_impact_data <- function(report_start, report_end){
       ungroup() %>%
       mutate(dta_int = interval(dta_dt, departure_dt)) %>%
       mutate(dta_time = dta_int/dminutes(1)) %>%
+      mutate(time_to_dta = interval(arrival_dt, dta_dt)/dminutes(1)) %>%
       mutate(trt_time = interval(arrival_dt, treatment_dt)/dminutes(1)) %>%
       mutate(date=floor_date(departure_dt,"day")) %>%
       mutate(ed_category=case_when(Acuity_Desc %in% c("Non-urgent level emergency care","Standard level emergency care") ~ "minor",
@@ -210,6 +277,7 @@ get_impact_data <- function(report_start, report_end){
       # mutate(departure_dt=max(departure_dt, conclusion_dt, na.rm=TRUE)) %>%
       ungroup() %>%
       mutate(dta_time = interval(dta_dt, departure_dt)/dminutes(1)) %>%
+      mutate(time_to_dta = interval(arrival_dt, dta_dt)/dminutes(1)) %>%
       mutate(ed_time = interval(arrival_dt, departure_dt)/dminutes(1)) %>%
       mutate(breach = (interval(arrival_dt, departure_dt)/dminutes(1)) > 4*60) %>%
       mutate(date=floor_date(departure_dt,"day")) %>%
@@ -243,74 +311,74 @@ get_impact_data <- function(report_start, report_end){
       #mutate(spec = ifelse(tfc == "medical" | MainSpecialtyCode == "medical", "medical", "not medical")) %>%
       select(nhs_number, arr_id, spec)
     
-    dat_ecds_perf <- glue::glue(
-      "select
-                        NHS_Number,
-                        Arrival_Date,
-                        Arrival_Time,
-                        Initial_Assessment_Date,
-                        Initial_Assessment_Time,
-                        Seen_For_Treatment_Date,
-                        Seen_For_Treatment_Time,
-                        Decision_To_Admit_Date,
-                        Decision_To_Admit_Time,
-                        Departure_Date,
-                        Departure_Time,
-                        Conclusion_Date,
-                        Conclusion_Time,
-                        Site_Name,
-                        Acuity_Desc,
-                        Index_Of_Multiple_Deprivation,
-                        Stated_Gender,
-                        HES_Age_At_Arrival,
-                        Organisation_Code_Commissioner,
-                        Arrival_Mode_Desc,
-                        Arrival_Category_Desc,
-                        Attendance_Source_Desc,
-                        destination_desc,
-                        Chief_Complaint_Desc,
-                        Acuity_Desc,
-                        Diagnoses_Code_1_Desc,
-                        Investigation_Code_1_Desc,
-                        Treatment_Function_Code
-      FROM Analyst_SQL_Area.dbo.tbl_BNSSG_ECDS
-      where Site_Name in ('BRISTOL ROYAL INFIRMARY', 'SOUTHMEAD HOSPITAL', 'WESTON GENERAL HOSPITAL')
-      and Arrival_Date between '{ymd(report_start)}' and '{report_end}'
-      "
-    ) %>%
-      sqlQuery(con, .) %>% mutate(NHS_Number = as.character(NHS_Number)) %>%
-      mutate(Treatment_Function_Code = coalesce(as.character(Treatment_Function_Code, "Missing"))) %>%
-      mutate(arrival_dt=as.POSIXct(paste0(Arrival_Date," ",substr(Arrival_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
-      mutate(initial_dt=as.POSIXct(paste0(Initial_Assessment_Date," ",substr(Initial_Assessment_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
-      mutate(treatment_dt=as.POSIXct(paste0(Seen_For_Treatment_Date," ",substr(Seen_For_Treatment_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
-      mutate(dta_dt=paste0(Decision_To_Admit_Date," ",substr(Decision_To_Admit_Time,1,8))) %>%
-      mutate(dta_dt=as.POSIXct(ifelse(grepl("NA",dta_dt),NA,dta_dt),format="%Y-%m-%d %H:%M:%S")) %>%
-      mutate(departure_dt=as.POSIXct(paste0(Departure_Date," ",substr(Departure_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
-      mutate(conclusion_dt=as.POSIXct(paste0(Conclusion_Date," ",substr(Conclusion_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
-      select(
-        nhs_number = NHS_Number,
-        arrival_dt,
-        initial_dt,
-        treatment_dt,
-        dta_dt,
-        departure_dt,
-        conclusion_dt,
-        site = Site_Name
-      ) %>%
-      rowwise() %>%
-      mutate(departure_dt=max(dta_dt,departure_dt, conclusion_dt, na.rm=TRUE)) %>%
-      # mutate(departure_dt=max(departure_dt, conclusion_dt, na.rm=TRUE)) %>%
-      ungroup() %>%
-      mutate(dta_time = interval(dta_dt, departure_dt)/dminutes(1)) %>%
-      mutate(ed_time = interval(arrival_dt, departure_dt)/dminutes(1)) %>%
-      mutate(breach = (interval(arrival_dt, departure_dt)/dminutes(1)) > 4*60) %>%
-      mutate(arrival_hour = ceiling_date(arrival_dt, unit = "4 hour")) %>%
-      filter(!between(arrival_hour, ymd("2022-04-01"), ymd("2022-07-10"))) %>%
-      # Remove rows for weston out of hours
-      filter(!(site == "WESTON GENERAL HOSPITAL" & hour(arrival_dt) %in% c(10:12, 1:7))) %>%
-      group_by(site, arrival_hour) %>%
-      summarise(perf = 1-mean(breach)) %>%
-      ungroup()
+    # dat_ecds_perf <- glue::glue(
+    #   "select
+    #                     NHS_Number,
+    #                     Arrival_Date,
+    #                     Arrival_Time,
+    #                     Initial_Assessment_Date,
+    #                     Initial_Assessment_Time,
+    #                     Seen_For_Treatment_Date,
+    #                     Seen_For_Treatment_Time,
+    #                     Decision_To_Admit_Date,
+    #                     Decision_To_Admit_Time,
+    #                     Departure_Date,
+    #                     Departure_Time,
+    #                     Conclusion_Date,
+    #                     Conclusion_Time,
+    #                     Site_Name,
+    #                     Acuity_Desc,
+    #                     Index_Of_Multiple_Deprivation,
+    #                     Stated_Gender,
+    #                     HES_Age_At_Arrival,
+    #                     Organisation_Code_Commissioner,
+    #                     Arrival_Mode_Desc,
+    #                     Arrival_Category_Desc,
+    #                     Attendance_Source_Desc,
+    #                     destination_desc,
+    #                     Chief_Complaint_Desc,
+    #                     Acuity_Desc,
+    #                     Diagnoses_Code_1_Desc,
+    #                     Investigation_Code_1_Desc,
+    #                     Treatment_Function_Code
+    #   FROM Analyst_SQL_Area.dbo.tbl_BNSSG_ECDS
+    #   where Site_Name in ('BRISTOL ROYAL INFIRMARY', 'SOUTHMEAD HOSPITAL', 'WESTON GENERAL HOSPITAL')
+    #   and Arrival_Date between '{ymd(report_start)}' and '{report_end}'
+    #   "
+    # ) %>%
+    #   sqlQuery(con, .) %>% mutate(NHS_Number = as.character(NHS_Number)) %>%
+    #   mutate(Treatment_Function_Code = coalesce(as.character(Treatment_Function_Code, "Missing"))) %>%
+    #   mutate(arrival_dt=as.POSIXct(paste0(Arrival_Date," ",substr(Arrival_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
+    #   mutate(initial_dt=as.POSIXct(paste0(Initial_Assessment_Date," ",substr(Initial_Assessment_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
+    #   mutate(treatment_dt=as.POSIXct(paste0(Seen_For_Treatment_Date," ",substr(Seen_For_Treatment_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
+    #   mutate(dta_dt=paste0(Decision_To_Admit_Date," ",substr(Decision_To_Admit_Time,1,8))) %>%
+    #   mutate(dta_dt=as.POSIXct(ifelse(grepl("NA",dta_dt),NA,dta_dt),format="%Y-%m-%d %H:%M:%S")) %>%
+    #   mutate(departure_dt=as.POSIXct(paste0(Departure_Date," ",substr(Departure_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
+    #   mutate(conclusion_dt=as.POSIXct(paste0(Conclusion_Date," ",substr(Conclusion_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
+    #   select(
+    #     nhs_number = NHS_Number,
+    #     arrival_dt,
+    #     initial_dt,
+    #     treatment_dt,
+    #     dta_dt,
+    #     departure_dt,
+    #     conclusion_dt,
+    #     site = Site_Name
+    #   ) %>%
+    #   rowwise() %>%
+    #   mutate(departure_dt=max(dta_dt,departure_dt, conclusion_dt, na.rm=TRUE)) %>%
+    #   # mutate(departure_dt=max(departure_dt, conclusion_dt, na.rm=TRUE)) %>%
+    #   ungroup() %>%
+    #   mutate(dta_time = interval(dta_dt, departure_dt)/dminutes(1)) %>%
+    #   mutate(ed_time = interval(arrival_dt, departure_dt)/dminutes(1)) %>%
+    #   mutate(breach = (interval(arrival_dt, departure_dt)/dminutes(1)) > 4*60) %>%
+    #   mutate(arrival_hour = ceiling_date(arrival_dt, unit = "4 hour")) %>%
+    #   filter(!between(arrival_hour, ymd("2022-04-01"), ymd("2022-07-10"))) %>%
+    #   # Remove rows for weston out of hours
+    #   filter(!(site == "WESTON GENERAL HOSPITAL" & hour(arrival_dt) %in% c(10:12, 1:7))) %>%
+    #   group_by(site, arrival_hour) %>%
+    #   summarise(perf = 1-mean(breach)) %>%
+    #   ungroup()
     
     dat_dtas <- 
       dat_ecds %>%
@@ -355,10 +423,13 @@ get_impact_data <- function(report_start, report_end){
       select(nhs_number, n_ed) %>%
       distinct()
     
+    
     dat <- dat_ecds %>%
       left_join(dat_spec) %>%
       filter(spec == "medical", !is.na(dta_dt)) %>%
       mutate(dta_time = dta_time/60) %>% # convert minutes to hours
+      mutate(time_to_dta = time_to_dta/60) %>% # convert minutes to hours
+
       # filter(ed_time < 60*30) %>%
       mutate(age = cut(age, breaks = c(0 , seq(30, 100, 10), Inf), right = FALSE, labels = c(
         "29 years old or under",
@@ -404,20 +475,25 @@ get_impact_data <- function(report_start, report_end){
       # mutate(arrival_year = factor(year(arrival_dt))) %>% # we can't use this because 2025 hasn't been trained on
       # mutate(arrival_year = factor(2024)) %>%
       mutate(arrival_hour = ceiling_date(arrival_dt, "4 hour")) %>% 
-      left_join(dat_ecds_perf) %>%
+      # left_join(dat_ecds_perf) %>%
       left_join(dat_ecds_n_ed) %>%
+      left_join(nctr_df, by = join_by(site == Site_Name)) %>%
+      left_join(site_resus_maj) %>%
+      mutate(nctr = nctr/total) %>%
       select(
         nhs_number,
         wkend,
         arrival_time,
         arrival_month,
         # arrival_year,
-        perf,
+        # perf,
         n_ed,
         age,
         sex,
         imd,
         dta_time,
+        time_to_dta,
+        nctr,
         site
         
         # wkend,
@@ -458,7 +534,7 @@ get_impact_data <- function(report_start, report_end){
     mutate(om4_impact = map_dbl(pred_los, \(x) sum(x, na.rm = TRUE))) %>%
     mutate(om4_impact_cf = map_dbl(pred_los_cf, \(x) sum(x, na.rm = TRUE))) %>%
     mutate(om4_impact_full_cf = map_dbl(pred_los_full_cf, \(x) sum(x, na.rm = TRUE))) %>%
-    mutate(across(matches("om4_impact"), \(x) x/7)) %>%
+    mutate(across(matches("om4_impact"), \(x) x/ (interval(report_start, report_end)/ddays(1)))) %>% # convert to excess bed utilisation
     # mutate(om6_impact = map2_dbl(pred_mort, pred_mort_cf, ~sum(.x-.y, na.rm = TRUE))) %>%
     # mutate(om6_mean_or = map2_dbl(pred_mort, pred_mort_cf, ~mean((.x/(1-.x))/(.y/(1-.y))-1, na.rm = TRUE))) %>%
     # mutate(om5_impact = map2_dbl(pred_readm, pred_readm_cf, ~sum(.x-.y, na.rm = TRUE))) %>%
@@ -1209,11 +1285,9 @@ conn <- dbConnect(dbDriver("MySQL"),
                   user = user,
                   password=password)
 
+
 # delete old data
 query_delete <- str_c("DELETE FROM excess_impacts")
 DBI::dbGetQuery(conn, query_delete)
 dbWriteTable(conn, "excess_impacts", value = bind_rows(out, out_2), overwrite = TRUE)
-
-# saveRDS(bind_rows(out, out_2), "data/avoidable_impacts_output.RDS")
-
 

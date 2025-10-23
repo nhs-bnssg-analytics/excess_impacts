@@ -29,7 +29,9 @@ app_colours <- c(
 )
 
 gen_html_text <- function(emph_text){
-  str_c("<span style='font-weight:bold;font-size:34pt;'>",
+  str_c(
+    # "<span style='font-weight:bold;font-size: 0.8em;'>",
+    "<span class='app-standard-text'>",
         emph_text,
         # "</span><br><span style='font-size:15pt'>",
         # sub_text,
@@ -472,7 +474,7 @@ html, body, .bslib-page-fill {
   margin-top: 0 !important;
 }
 .app-standard-text {
-  font-size: 0.75vw !important; /* Choose your preferred size */
+  font-size: 0.95vw !important; /* Choose your preferred size */
   line-height: 1.5 !important;
   margin: 5px 0 !important;
   font-weight: 400 !important;
@@ -490,7 +492,62 @@ tags$script(HTML("
           }
         }, 100);
       });
-    "))
+    ")),
+# Script to update CSS variables based on viewport width
+tags$script("
+      // Wait for Shiny to be fully initialized
+      $(document).on('shiny:connected', function(event) {
+        function updateFontSizes() {
+          // Get viewport width
+          var width = window.innerWidth;
+          var height = window.innerHeight;
+          
+          // Read slider values directly from DOM
+          var primaryMultiplier = parseFloat($('#primaryTextSize').val() || 1);
+          var secondaryMultiplier = parseFloat($('#secondaryTextSize').val() || 0.7);
+          
+          // Calculate sizes
+          var baseSize = width / 50;
+          var primarySize = baseSize * primaryMultiplier;
+          var secondarySize = baseSize * secondaryMultiplier;
+          
+          // Apply limits
+          primarySize = Math.min(Math.max(primarySize, 12), 48);
+          secondarySize = Math.min(Math.max(secondarySize, 10), 36);
+          
+          // Update CSS variables
+          document.documentElement.style.setProperty('--primary-font-size', primarySize + 'px');
+          document.documentElement.style.setProperty('--secondary-font-size', secondarySize + 'px');
+          
+          // Send values to Shiny using the correct method
+          Shiny.setInputValue('viewport_width', width);
+          Shiny.setInputValue('viewport_height', height);
+          Shiny.setInputValue('calculated_primary_size', primarySize);
+          Shiny.setInputValue('calculated_secondary_size', secondarySize);
+          
+          console.log('Updated font sizes. Viewport: ' + width + 'x' + height + 
+                      ' Primary: ' + primarySize + 'px, Secondary: ' + secondarySize + 'px');
+        }
+        
+        // Initial update
+        updateFontSizes();
+        
+        // Update on window resize with debounce
+        var resizeTimer;
+        $(window).on('resize', function() {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(updateFontSizes, 100);
+        });
+        
+        // Update when sliders change
+        $(document).on('input change', '#primaryTextSize, #secondaryTextSize', function() {
+          updateFontSizes();
+        });
+        
+        // Execute again after a short delay to ensure everything is loaded
+        setTimeout(updateFontSizes, 500);
+      });
+    ")
 
   ),
 
@@ -889,10 +946,94 @@ div(
       
     )
   )
-)
+),
+verbatimTextOutput("debugText")
 )
 
 server <- function(input, output, session) {
+  
+  
+  # Default viewport dimensions
+  viewportDims <- reactiveValues(
+    width = 1200,
+    height = 800
+  )
+  
+  # Request viewport size when session starts
+  observe({
+    session$sendCustomMessage("requestViewportSize", list())
+  })
+  
+  # fontSizeReactive <- reactive({
+  #   # Use the JavaScript value if available, otherwise use a sensible default
+  #   input$calculated_primary_size %||% 24
+  # })
+  # 
+  # Update from JavaScript inputs when available
+  observe({
+    # Try first method
+    if (!is.null(input$viewport_width)) {
+      viewportDims$width <- input$viewport_width
+      viewportDims$height <- input$viewport_height
+    }
+    
+    # Try backup method
+    if (!is.null(input$viewport_width_requested)) {
+      viewportDims$width <- input$viewport_width_requested
+      viewportDims$height <- input$viewport_height_requested
+    }
+  })
+  
+  # # Calculate font sizes on the server side as a backup
+  # fontSizes <- reactive({
+  #   # Base size calculation using viewport width
+  #   baseSize <- viewportDims$width / 50
+  #   
+  #   # Apply user's multipliers
+  #   primarySize <- baseSize * input$primaryTextSize
+  #   secondarySize <- baseSize * input$secondaryTextSize
+  #   
+  #   # Ensure reasonable bounds
+  #   primarySize <- min(max(primarySize, 12), 48)
+  #   secondarySize <- min(max(secondarySize, 10), 36)
+  #   
+  #   list(
+  #     primary = primarySize,
+  #     secondary = secondarySize
+  #   )
+  # })
+  
+  # # Provide viewport info for JavaScript as a backup method
+  # output$viewport_size_text <- renderText({
+  #   paste0(viewportDims$width, "x", viewportDims$height)
+  # })
+  # 
+  # # Optional debug information
+  # output$debugText <- renderPrint({
+  #   # Primary values from JavaScript
+  #   cat("Viewport dimensions (JS): ", input$viewport_width %||% "N/A", " x ", 
+  #       input$viewport_height %||% "N/A", "\n")
+  #   
+  #   # Backup values from secondary method
+  #   cat("Viewport dimensions (requested): ", input$viewport_width_requested %||% "N/A", " x ", 
+  #       input$viewport_height_requested %||% "N/A", "\n")
+  #   
+  #   # Values used in calculations
+  #   cat("Viewport dimensions (used): ", viewportDims$width, " x ", viewportDims$height, "\n\n")
+  #   
+  #   # Font sizes
+  #   cat("Calculated primary size (JS): ", input$calculated_primary_size %||% "N/A", "px\n")
+  #   cat("Calculated secondary size (JS): ", input$calculated_secondary_size %||% "N/A", "px\n")
+  #   
+  #   # Backup font sizes calculated on server
+  #   cat("Calculated primary size (server): ", round(fontSizes()$primary, 1), "px\n")
+  #   cat("Calculated secondary size (server): ", round(fontSizes()$secondary, 1), "px\n\n")
+  #   
+  #   # Slider values
+  #   cat("Slider values:\n")
+  #   cat("Primary multiplier: ", input$primaryTextSize, "\n")
+  #   cat("Secondary multiplier: ", input$secondaryTextSize, "\n")
+  # })
 
   
   # Create a reactive value to store the selected scenario
@@ -1241,7 +1382,7 @@ server <- function(input, output, session) {
   
   
   # Create a function to generate plots with consistent formatting
-  create_plot <- function(data) {
+  create_plot <- function(data, font_size = 15) {
     if (is.null(data) || nrow(data) == 0) {
       # Return an empty plot for debugging
       return(ggplot() + 
@@ -1249,11 +1390,12 @@ server <- function(input, output, session) {
                labs(title = "No data available"))
     }
     
+    
     data %>%
       ggplot(aes(x = impact, y = value, fill = impact)) +
       geom_col() +
       geom_hline(aes(yintercept = target), linetype = 2, size = 2, colour = "grey30") +
-      ggfx::with_outer_glow(geom_textbox(aes(label = value_label), fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
+      ggfx::with_outer_glow(geom_textbox(aes(label = value_label), size = font_size, fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
                             colour = "white", x_offset = 0, y_offset = 0, expand = 12.5, sigma = 0) +
       theme_void() +
       scale_y_continuous(expand = expansion(mult = c(0, 0.75))) +
@@ -1307,7 +1449,7 @@ server <- function(input, output, session) {
     dta_queue <- n_dta_norm()
     
     HTML(glue::glue('
-<div style="display: flex; align-items: flex-start; width: 100%; font-size: 0.85vw;">
+<div style="display: flex; align-items: flex-start; width: 100%; font-size: 0.9vw;">
   <div style="width: 15%; flex: none;"></div>
   <div style="width: 41.67%; display: flex; align-items: flex-start; justify-content: flex-end; padding-right: 10px;">
     <span class="scenario-indicator" style="background-color: {app_colours["actual"]}; margin-right: 0.3vw; margin-top: 0.2vw;"></span>
@@ -1504,22 +1646,26 @@ server <- function(input, output, session) {
   
   # Plot outputs - render directly from the chart data
   output$chart1 <- renderPlot({
-    create_plot(mortality_chart_data())
+    # Only proceed when calculated_primary_size is available
+    fontSize <- input$calculated_primary_size %||% 15
+    create_plot(mortality_chart_data(), font_size = fontSize)
   }) %>% bindCache(input$scenario_select, input$grp_select)
   
   output$chart2 <- renderPlot({
-    create_plot(los_chart_data())
+    fontSize <- input$calculated_primary_size %||% 15
+    create_plot(los_chart_data(), font_size = fontSize)
   }) %>% bindCache(input$scenario_select, input$grp_select)
   
   output$chart3 <- renderPlot({
-    create_plot(resp_chart_data())
+    fontSize <- input$calculated_primary_size %||% 15
+    create_plot(resp_chart_data(), font_size = fontSize)
   }) %>% bindCache(input$scenario_select, input$grp_select)
   
   output$chart4 <- renderPlot({
-    create_plot(handover_chart_data())
+    fontSize <- input$calculated_primary_size %||% 15
+    create_plot(handover_chart_data(), font_size = fontSize)
   }) %>% bindCache(input$scenario_select, input$grp_select)
   
-  outputOptions(output, "scenario_table", suspendWhenHidden = FALSE)
 
   
   outputOptions(output, "scenario_table", suspendWhenHidden = FALSE)
