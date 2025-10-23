@@ -57,8 +57,11 @@ conn <- dbConnect(dbDriver("MySQL"),
 
 on.exit(dbDisconnect(conn))
 
+#print(paste("Working directory at server start:", getwd()))
 
-impacts_output_raw  <- DBI::dbGetQuery(conn, "select * from excess_impacts") %>%
+setwd("/srv/shiny-server/")
+
+impacts_output_raw  <-DBI::dbGetQuery(conn, "select * from excess_impacts") %>%
   mutate(report_date = ymd(report_date)) %>%
   mutate(grp = recode(grp,
                       "System total" = "BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)",
