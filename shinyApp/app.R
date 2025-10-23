@@ -953,6 +953,71 @@ verbatimTextOutput("debugText")
 server <- function(input, output, session) {
   
   
+  # 1. Create a reactive timer that fires every 15 minutes (900,000 ms)
+  data_refresh_timer <- reactiveTimer(900000)
+  
+  # 2. Define the function to connect and query the database
+  get_impacts_data <- function() {
+    # Establish connection (using your existing environment variables)
+    conn <- dbConnect(dbDriver("MySQL"),
+                      dbname = Sys.getenv("DB_NAME"),
+                      host = Sys.getenv("DB_HOST"),
+                      port = 3306,
+                      user = Sys.getenv("DB_USER"),
+                      password = Sys.getenv("DB_CRED"))
+    
+    on.exit(dbDisconnect(conn))
+    
+    # Perform the query and initial data processing
+    DBI::dbGetQuery(conn, "select * from excess_impacts") %>%
+      mutate(report_date = ymd(report_date)) %>%
+      mutate(grp = recode(grp,
+                          "System total" = "BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)",
+                          "WESTON GENERAL HOSPITAL" = "WGH", 
+                          "SOUTHMEAD HOSPITAL" = "NBT", 
+                          "BRISTOL ROYAL INFIRMARY" = "BRI", 
+                          "cat1" = "(Category 1)",
+                          "cat2" = "(Category 2)",
+                          "cat3" = "(Category 3)"
+      )) %>%
+      mutate(
+        scenario = case_when(
+          str_detect(impact, r"((?<!full_)cf)") | str_detect(impact, r"((?<!full_)raw)")~ "cf",
+          str_detect(impact, "full_cf") | str_detect(impact, "full_raw") ~ "full_cf",
+          str_detect(impact, r"(impact(?!_cf))") ~ "actual",
+          .default = "n/a"
+        ),
+        sub_text = case_when(
+          str_detect(impact, "om6_impact") ~ str_c(sub_text, "*"),
+          str_detect(impact, "om4_impact") ~ str_c(sub_text, "*"),
+          str_detect(impact, "om2_impact") ~ str_c(sub_text, "**"),
+          str_detect(impact, "om1[abc]_impact") ~ str_c(sub_text, "**")
+        )) %>%
+      mutate(impact = str_remove(impact, "_full")) %>%
+      mutate(value_label = gen_html_text(emph_text))
+  }
+  
+  # 3. Create the reactive data frame using the timer
+  impacts_output_reactive <- reactive({
+    # Invalidate the reactive expression every 15 minutes
+    data_refresh_timer()
+    
+    # Isolate the function call from the timer to only rerun when the timer fires
+    isolate({
+      message("Refreshing data from MySQL at: ", Sys.time())
+      get_impacts_data()
+    })
+  })
+  
+  max_report_date_reactive <- reactive({
+    max(impacts_output_reactive()$report_date)
+  })
+  
+  min_report_date_reactive <- reactive({
+    min(impacts_output_reactive()$report_date)
+  })
+  
+  
   # Default viewport dimensions
   viewportDims <- reactiveValues(
     width = 1200,
@@ -984,56 +1049,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # # Calculate font sizes on the server side as a backup
-  # fontSizes <- reactive({
-  #   # Base size calculation using viewport width
-  #   baseSize <- viewportDims$width / 50
-  #   
-  #   # Apply user's multipliers
-  #   primarySize <- baseSize * input$primaryTextSize
-  #   secondarySize <- baseSize * input$secondaryTextSize
-  #   
-  #   # Ensure reasonable bounds
-  #   primarySize <- min(max(primarySize, 12), 48)
-  #   secondarySize <- min(max(secondarySize, 10), 36)
-  #   
-  #   list(
-  #     primary = primarySize,
-  #     secondary = secondarySize
-  #   )
-  # })
   
-  # # Provide viewport info for JavaScript as a backup method
-  # output$viewport_size_text <- renderText({
-  #   paste0(viewportDims$width, "x", viewportDims$height)
-  # })
-  # 
-  # # Optional debug information
-  # output$debugText <- renderPrint({
-  #   # Primary values from JavaScript
-  #   cat("Viewport dimensions (JS): ", input$viewport_width %||% "N/A", " x ", 
-  #       input$viewport_height %||% "N/A", "\n")
-  #   
-  #   # Backup values from secondary method
-  #   cat("Viewport dimensions (requested): ", input$viewport_width_requested %||% "N/A", " x ", 
-  #       input$viewport_height_requested %||% "N/A", "\n")
-  #   
-  #   # Values used in calculations
-  #   cat("Viewport dimensions (used): ", viewportDims$width, " x ", viewportDims$height, "\n\n")
-  #   
-  #   # Font sizes
-  #   cat("Calculated primary size (JS): ", input$calculated_primary_size %||% "N/A", "px\n")
-  #   cat("Calculated secondary size (JS): ", input$calculated_secondary_size %||% "N/A", "px\n")
-  #   
-  #   # Backup font sizes calculated on server
-  #   cat("Calculated primary size (server): ", round(fontSizes()$primary, 1), "px\n")
-  #   cat("Calculated secondary size (server): ", round(fontSizes()$secondary, 1), "px\n\n")
-  #   
-  #   # Slider values
-  #   cat("Slider values:\n")
-  #   cat("Primary multiplier: ", input$primaryTextSize, "\n")
-  #   cat("Secondary multiplier: ", input$secondaryTextSize, "\n")
-  # })
 
   
   # Create a reactive value to store the selected scenario
@@ -1185,12 +1201,14 @@ server <- function(input, output, session) {
   
   # Create a reactive expression for the filtered data
   filtered_data <- reactive({
-    impacts_output_raw %>%
+    req(input$grp_select, input$scenario_select)
+    impacts_output_reactive() %>%
       filter(grp == input$grp_select, scenario %in% c("n/a", "actual", input$scenario_select))
   })
   
   # Extract key metrics into separate reactive expressions
   n_admits <- reactive({
+    req(input$grp_select, input$scenario_select)
     filtered_data() %>%
       filter(impact == 'n_dta', report_date == max_report_date) %>%
       pull(value)
@@ -1425,7 +1443,7 @@ server <- function(input, output, session) {
   
   output$header <- renderUI({
     # Use req() to ensure reactives are ready
-    req(n_admits(), dta_time())
+    req(n_admits(), dta_time(), max_report_date_reactive())
     
     site_text <- switch(input$grp_select,
                         "BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)" = "our emergency department",
@@ -1436,7 +1454,7 @@ server <- function(input, output, session) {
     h5(
       style = "line-height: 1.2; margin: 0;",  # Increased line-height from 1.4 to 1.5
       HTML(glue::glue(
-        "<p class='app-standard-text' style='margin: 2.5px 0; max-height: none;'><span><strong>Between {format_week_interval(max_report_date)}</strong>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
+        "<p class='app-standard-text' style='margin: 2.5px 0; max-height: none;'><span><strong>Between {format_week_interval(max_report_date_reactive())}</strong>, {site_text} saw <b>{n_admits()} medical admissions</b>. These patients spent a combined <b>{round(dta_time()/(60*24))} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays and queue size has on patients and ambulance performance.<strong> From this we estimate the impacts based on 2 scenarios..</strong></span></p>"
       ))
     )
   })
@@ -1463,6 +1481,7 @@ server <- function(input, output, session) {
 </div>
   '))
   })
+  
   
   
   output$mort_subtext <- renderUI({
@@ -1529,120 +1548,6 @@ server <- function(input, output, session) {
     )
   })
   
-  # # Plot outputs - render directly from the chart data
-  # output$chart1 <- renderImage({
-  #   # Create a temporary file for the PNG
-  #   temp_png <- tempfile(fileext = ".png")
-  #   
-  #   # Save the plot directly to PNG
-  #   ggsave(
-  #     filename = temp_png,
-  #     plot = create_plot(mortality_chart_data()),
-  #     device = "png",
-  #     width = 10,
-  #     height = 2,
-  #     units = "in",
-  #     dpi = 120
-  #   )
-  #   
-  #   # Return a list with the information needed for renderImage
-  #   list(
-  #     src = temp_png,
-  #     contentType = "image/png",
-  #     width = "100%",
-  #     height = "auto",
-  #     alt = "ggplot2 Chart",
-  #     # Delete the temporary file when the session ends
-  #     deleteFile = TRUE
-  #   )
-  #   
-  # }, deleteFile = TRUE)
-  # 
-  # # Plot outputs - render directly from the chart data
-  # output$chart2 <- renderImage({
-  #   # Create a temporary file for the PNG
-  #   temp_png <- tempfile(fileext = ".png")
-  #   
-  #   # Save the plot directly to PNG
-  #   ggsave(
-  #     filename = temp_png,
-  #     plot = create_plot(los_chart_data()),
-  #     device = "png",
-  #     width = 10,
-  #     height = 2,
-  #     units = "in",
-  #     dpi = 120
-  #   )
-  #   
-  #   # Return a list with the information needed for renderImage
-  #   list(
-  #     src = temp_png,
-  #     contentType = "image/png",
-  #     width = "100%",
-  #     height = "auto",
-  #     alt = "ggplot2 Chart",
-  #     # Delete the temporary file when the session ends
-  #     deleteFile = TRUE
-  #   )
-  #   
-  # }, deleteFile = TRUE)
-  # 
-  # # Plot outputs - render directly from the chart data
-  # output$chart3 <- renderImage({
-  #   # Create a temporary file for the PNG
-  #   temp_png <- tempfile(fileext = ".png")
-  #   
-  #   # Save the plot directly to PNG
-  #   ggsave(
-  #     filename = temp_png,
-  #     plot = create_plot(resp_chart_data()),
-  #     device = "png",
-  #     width = 10,
-  #     height = 2,
-  #     units = "in",
-  #     dpi = 120
-  #   )
-  #   
-  #   # Return a list with the information needed for renderImage
-  #   list(
-  #     src = temp_png,
-  #     contentType = "image/png",
-  #     width = "100%",
-  #     height = "auto",
-  #     alt = "ggplot2 Chart",
-  #     # Delete the temporary file when the session ends
-  #     deleteFile = TRUE
-  #   )
-  #   
-  # }, deleteFile = TRUE)
-  # # Plot outputs - render directly from the chart data
-  # output$chart4 <- renderImage({
-  #   # Create a temporary file for the PNG
-  #   temp_png <- tempfile(fileext = ".png")
-  #   
-  #   # Save the plot directly to PNG
-  #   ggsave(
-  #     filename = temp_png,
-  #     plot = create_plot(handover_chart_data()),
-  #     device = "png",
-  #     width = 10,
-  #     height = 2,
-  #     units = "in",
-  #     dpi = 120
-  #   )
-  #   
-  #   # Return a list with the information needed for renderImage
-  #   list(
-  #     src = temp_png,
-  #     contentType = "image/png",
-  #     width = "100%",
-  #     height = "auto",
-  #     alt = "ggplot2 Chart",
-  #     # Delete the temporary file when the session ends
-  #     deleteFile = TRUE
-  #   )
-  #   
-  # }, deleteFile = TRUE)
   
   # Plot outputs - render directly from the chart data
   output$chart1 <- renderPlot({
