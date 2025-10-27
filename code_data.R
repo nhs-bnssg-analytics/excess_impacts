@@ -41,14 +41,14 @@ site_resus_maj <- tibble(site = c("BRISTOL ROYAL INFIRMARY", "WESTON GENERAL HOS
   mutate(total = maj + resus)
 
 
-mort_mod <- readRDS("data/mort_effects_output.RDS") %>% `[[`("mort_mod_raw")
-readm_mod <- readRDS("data/readm_effects_output.RDS") %>% `[[`("readm_mod_raw")
-los_mod <- readRDS("data/los_effect_output_reformulated.RDS") %>% `[[`("los_mod")
+mort_mod <- readRDS("data/mort_effects_output_multilvl.RDS") %>% `[[`("mort_mod_raw")
+readm_mod <- readRDS("data/readm_effects_output_multilvl.RDS") %>% `[[`("readm_mod_raw")
+los_mod <- readRDS("data/los_outputs_reformulated_multilvl.RDS") %>% `[[`("mod_full")
 vw_impute_rec <- readRDS("data/vw_impute_rec.RDS")
 
-handover_coef <- readRDS("data/avoidable_impacts_handover_coef.RDS")
-ed_time_coef <- readRDS("data/avoidable_impacts_ed_time_coef.RDS")
-resp_coef <- readRDS("data/avoidable_impacts_resp_coef.RDS")
+handover_coef <- readRDS("data/handover_coef_multilvl.RDS")
+ed_time_coef <- readRDS("data/ed_time_coef_multilvl.RDS")
+resp_coef <- readRDS("data/resp_time_coef_multilvl.RDS")
 
 
 # NCTR data - we make assumption NCTR number is constant across the week
@@ -105,7 +105,7 @@ nctr_df <-
 # Training the imputation model for VW score (SUS is too late)
 # Uncomment to retrain
 
-vw_data <- readRDS("data/mort_effects_output.RDS") %>% `[[`("mod_df") 
+vw_data <- readRDS("data/mort_effects_output_multilvl.RDS") %>% `[[`("mod_df") %>% select(-nhs_number)
 
 vw_impute_rec <- recipe(mort_30 ~ ., data = vw_data) %>%
   # step_impute_bag(vw_score, all_predictors(), trees = 100) %>%
@@ -116,7 +116,6 @@ saveRDS(vw_impute_rec, file = "data/vw_impute_rec.RDS")
 
 
 get_impact_data <- function(report_start, report_end){
-  
   # sequence of time snapshots (i.e. when we measure DTA queue)
   snapshot_seq <- seq.POSIXt(from = as.POSIXct(lubridate::ymd(report_start)),
                              to = as.POSIXct(lubridate::ymd(report_end)),
@@ -450,7 +449,7 @@ get_impact_data <- function(report_start, report_end){
         imd,
         levels = 1:10,
         labels = c(
-          "1 (least deprived)",
+          "1 (most deprived)",
           "2",
           "3",
           "4",
@@ -459,7 +458,7 @@ get_impact_data <- function(report_start, report_end){
           "7",
           "8",
           "9",
-          "10 (most deprived)"
+          "10 (least deprived)"
         )
       )) %>%
       mutate(wkend = factor(ifelse(wday(arrival_dt, week_start = 1) < 6, "No", "Yes"))) %>%
@@ -516,15 +515,15 @@ get_impact_data <- function(report_start, report_end){
     nest(.by = site) %>%
     mutate(data = map(data, \(d) bake(vw_impute_rec, new_data = mutate(d, vw_score = NA_real_)))) %>%
     mutate(n_exposure = map_dbl(data, nrow)) %>%
-    mutate(pred_mort = map(data, \(d) predict(mort_mod, newdata = d, type = "response"))) %>%
-    mutate(pred_mort_cf = map(data, \(d) predict(mort_mod, newdata = mutate(d, dta_time = 1), type = "response"))) %>%
-    mutate(pred_mort_full_cf = map(data, \(d) predict(mort_mod, newdata = mutate(d, dta_time = 0), type = "response"))) %>%
-    mutate(pred_readm = map(data, \(d) predict(readm_mod, newdata = d, type = "response"))) %>%
-    mutate(pred_readm_cf = map(data, \(d) predict(readm_mod, newdata = mutate(d, dta_time = 1), type = "response"))) %>% 
-    mutate(pred_readm_full_cf = map(data, \(d) predict(readm_mod, newdata = mutate(d, dta_time = 0), type = "response"))) %>% 
-    mutate(pred_los = map(data, \(d) predict.lm(los_mod, newdata = d))) %>%
-    mutate(pred_los_cf = map(data, \(d) predict.lm(los_mod, newdata = mutate(d, dta_time = 1)))) %>%
-    mutate(pred_los_full_cf = map(data, \(d) predict.lm(los_mod, newdata = mutate(d, dta_time = 0)))) %>%
+    mutate(pred_mort = map(data, \(d) predict(mort_mod, newdata = d, type = "response", re.form = NA))) %>%
+    mutate(pred_mort_cf = map(data, \(d) predict(mort_mod, newdata = mutate(d, dta_time = 1), type = "response", re.form = NA))) %>%
+    mutate(pred_mort_full_cf = map(data, \(d) predict(mort_mod, newdata = mutate(d, dta_time = 0), type = "response", re.form = NA))) %>%
+    mutate(pred_readm = map(data, \(d) predict(readm_mod, newdata = d, type = "response", re.form = NA))) %>%
+    mutate(pred_readm_cf = map(data, \(d) predict(readm_mod, newdata = mutate(d, dta_time = 1), type = "response", re.form = NA))) %>% 
+    mutate(pred_readm_full_cf = map(data, \(d) predict(readm_mod, newdata = mutate(d, dta_time = 0), type = "response", re.form = NA))) %>% 
+    mutate(pred_los = map(data, \(d) predict(los_mod, newdata = d, re.form = NA))) %>%
+    mutate(pred_los_cf = map(data, \(d) predict(los_mod, newdata = mutate(d, dta_time = 1), re.form = NA))) %>%
+    mutate(pred_los_full_cf = map(data, \(d) predict(los_mod, newdata = mutate(d, dta_time = 0), re.form = NA))) %>%
     mutate(om6_impact = map_dbl(pred_mort, \(x) sum(x, na.rm = TRUE))) %>%
     mutate(om6_impact_cf = map_dbl(pred_mort_cf, \(x) sum(x, na.rm = TRUE))) %>%
     mutate(om6_impact_full_cf = map_dbl(pred_mort_full_cf, \(x) sum(x, na.rm = TRUE))) %>%
