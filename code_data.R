@@ -105,14 +105,14 @@ nctr_df <-
 # Training the imputation model for VW score (SUS is too late)
 # Uncomment to retrain
 
-vw_data <- readRDS("data/mort_effects_output_multilvl.RDS") %>% `[[`("mod_df") %>% select(-nhs_number)
-
-vw_impute_rec <- recipe(mort_30 ~ ., data = vw_data) %>%
-  # step_impute_bag(vw_score, all_predictors(), trees = 100) %>%
-  step_impute_knn(vw_score, all_predictors()) %>%
-  prep(training = vw_data)
-
-saveRDS(vw_impute_rec, file = "data/vw_impute_rec.RDS")
+# vw_data <- readRDS("data/mort_effects_output_multilvl.RDS") %>% `[[`("mod_df") %>% select(-nhs_number)
+# 
+# vw_impute_rec <- recipe(mort_30 ~ ., data = vw_data) %>%
+#   # step_impute_bag(vw_score, all_predictors(), trees = 100) %>%
+#   step_impute_knn(vw_score, all_predictors()) %>%
+#   prep(training = vw_data)
+# 
+# saveRDS(vw_impute_rec, file = "data/vw_impute_rec.RDS")
 
 
 get_impact_data <- function(report_start, report_end){

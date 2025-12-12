@@ -24,9 +24,9 @@ site_resus_maj <- tibble(site = c("BRISTOL ROYAL INFIRMARY", "WESTON GENERAL HOS
   mutate(total = maj + resus)
 
 
-mort_mod <- readRDS("data/mort_effects_output.RDS") %>% `[[`("mort_mod_raw")
-readm_mod <- readRDS("data/readm_effects_output.RDS") %>% `[[`("readm_mod_raw")
-los_mod <- readRDS("data/los_effect_output_reformulated.RDS") %>% `[[`("los_mod")
+mort_mod <- readRDS("data/mort_effects_output_multilvl.RDS") %>% `[[`("mort_mod_raw")
+readm_mod <- readRDS("data/readm_effects_output_multilvl.RDS") %>% `[[`("readm_mod_raw")
+los_mod <- readRDS("data/los_outputs_reformulated_multilvl.RDS") %>% `[[`("los_mod")
 vw_impute_rec <- readRDS("data/vw_imput_rec.RDS")
 
 handover_coef <- readRDS("data/avoidable_impacts_handover_coef.RDS")
@@ -118,6 +118,7 @@ dat_downstream <- local({
     ungroup() %>%
     mutate(dta_int = interval(dta_dt, departure_dt)) %>%
     mutate(dta_time = dta_int/dminutes(1)) %>%
+    mutate(time_to_dta = interval(arrival_dt, dta_dt)/dminutes(1)) %>%
     mutate(trt_time = interval(arrival_dt, treatment_dt)/dminutes(1)) %>%
     mutate(date=floor_date(departure_dt,"day")) %>%
     mutate(ed_category=case_when(Acuity_Desc %in% c("Non-urgent level emergency care","Standard level emergency care") ~ "minor",
@@ -287,6 +288,7 @@ dat_downstream <- local({
     # mutate(departure_dt=max(departure_dt, conclusion_dt, na.rm=TRUE)) %>%
     ungroup() %>%
     mutate(dta_time = interval(dta_dt, departure_dt)/dminutes(1)) %>%
+    mutate(time_to_dta = interval(arrival_dt, dta_dt)/dminutes(1)) %>%
     mutate(ed_time = interval(arrival_dt, departure_dt)/dminutes(1)) %>%
     mutate(breach = (interval(arrival_dt, departure_dt)/dminutes(1)) > 4*60) %>%
     mutate(arrival_hour = ceiling_date(arrival_dt, unit = "4 hour")) %>%
