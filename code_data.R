@@ -29,6 +29,9 @@ FROM (
 report_end <- max_date
 report_start <- report_end - ddays(6)
 
+# report_start <-  ymd("2024-12-01")
+# report_end <- ymd("2025-11-30")
+
 
 n_hour <- 2
 pre_window_days <- 60
@@ -99,7 +102,9 @@ nctr_df <-
   FROM Analyst_SQL_Area.dbo.vw_NCTR_Status_Report_Daily_JI
   where Census_Date = '{report_start}'"
   )) %>%
-  filter(Criteria_To_Reside == "N") %>%
+  slice(1, .by = CDS_Unique_Identifier) %>%
+  filter(Criteria_To_Reside == "N", Bed_Type == "Medicine") %>%
+  mutate(Site_Name = stringr::str_to_upper(Site_Name)) %>%
   summarise(nctr = n(), .by = Site_Name)
 
 # Training the imputation model for VW score (SUS is too late)
@@ -510,6 +515,7 @@ get_impact_data <- function(report_start, report_end){
     
   })
   
+
   downstream_impacts <- dat_downstream %>%
     bind_rows(mutate(., site = "System total")) %>%
     nest(.by = site) %>%
@@ -1266,6 +1272,14 @@ out <- get_impact_data(report_start = report_start,
 
 out_2 <- get_impact_data(report_start = report_start - ddays(7),
                          report_end = report_end - ddays(7))
+
+
+foo <- 
+  seq.Date(from = report_end - dweeks(26), to = report_end, by = "week") %>%
+  map(\(x) get_impact_data(report_start = x - ddays(6), report_end = x)
+)
+
+
 
 
 # Write to MYSQL

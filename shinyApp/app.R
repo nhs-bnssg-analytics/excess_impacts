@@ -59,7 +59,7 @@ on.exit(dbDisconnect(conn))
 
 #print(paste("Working directory at server start:", getwd()))
 
-setwd("/srv/shiny-server/")
+# setwd("/srv/shiny-server/")
 
 impacts_output_raw  <-DBI::dbGetQuery(conn, "select * from excess_impacts") %>%
   mutate(report_date = ymd(report_date)) %>%
@@ -809,9 +809,9 @@ div(
   # Top heading paragraph
   card(
     full_screen = FALSE,
-    height = "8vh",
+    min_height = "9vh",
     class = "no-border-no-pad header-card",
-    style = "overflow: visible !important; margin-bottom: 3vh; flex-shrink: 0;",
+    style = "overflow: hidden !important; margin-bottom: 3vh; flex-shrink: 0;",
     gap = "0vh",
     uiOutput("header")
   ),
