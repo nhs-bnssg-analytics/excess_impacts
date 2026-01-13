@@ -510,13 +510,13 @@ tags$script("
           var secondaryMultiplier = parseFloat($('#secondaryTextSize').val() || 0.7);
           
           // Calculate sizes
-          var baseSize = width / 50;
+          var baseSize = width/10;
           var primarySize = baseSize * primaryMultiplier;
           var secondarySize = baseSize * secondaryMultiplier;
           
-          // Apply limits
-          primarySize = Math.min(Math.max(primarySize, 12), 48);
-          secondarySize = Math.min(Math.max(secondarySize, 10), 36);
+         // Apply limits - tighter range for less dramatic scaling
+          primarySize = Math.min(Math.max(primarySize, 16), 28);
+          secondarySize = Math.min(Math.max(secondarySize, 12), 22);
           
           // Update CSS variables
           document.documentElement.style.setProperty('--primary-font-size', primarySize + 'px');
@@ -1402,37 +1402,59 @@ server <- function(input, output, session) {
   })
   
   
-  # Create a function to generate plots with consistent formatting
-  create_plot <- function(data, font_size = 15) {
-    if (is.null(data) || nrow(data) == 0) {
-      # Return an empty plot for debugging
-      return(ggplot() + 
-               theme_void() + 
-               labs(title = "No data available"))
-    }
-    
-    
-    data %>%
-      ggplot(aes(x = impact, y = value, fill = impact)) +
-      geom_col() +
-      geom_hline(aes(yintercept = target), linetype = 2, size = 2, colour = "grey30") +
-      ggfx::with_outer_glow(geom_textbox(aes(label = value_label), size = font_size, fill = NA, box.color = NA, halign = 0.5, vjust = -0.2, width = unit(0.4, "npc")),
-                            colour = "white", x_offset = 0, y_offset = 0, expand = 12.5, sigma = 0) +
-      theme_void() +
-      scale_y_continuous(expand = expansion(mult = c(0, 0.75))) +
-      scale_fill_manual(values = unname(app_colours)) +
-      theme(legend.position = "off",
-            plot.margin = margin(0, 0, 0, 0, "pt"),
-            axis.text.x = element_blank(),
-            axis.text.y = element_blank(),
-            axis.line.x = element_line(linewidth = 2.5, colour = "grey30"),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            plot.title = element_textbox(size = 20, hjust = 0.5),
-            plot.caption = element_textbox(size = 20, hjust = 0.5, margin = margin(t = 10), face = "bold")
-      ) +
-      labs(caption = data$sub_text[1], y = "", x = "")
+create_plot <- function(data) {
+  if (is.null(data) || nrow(data) == 0) {
+    return(ggplot() + 
+             theme_void() + 
+             labs(title = "No data available"))
   }
+
+  col_label_size <- 10
+  
+  data %>%
+    ggplot(aes(x = impact, y = value, fill = impact)) +
+    geom_col() +
+    geom_hline(aes(yintercept = target), 
+               linetype = "dashed", 
+               linewidth = 0.8, 
+               colour = "grey30") +
+    # Lightweight glow: white shadow layer
+    ggtext::geom_richtext(
+      aes(label = value_label), 
+      size = col_label_size,  # Fixed size in mm - ggplot handles scaling
+      vjust = -0.1,
+      fill = "white",
+      label.color = "white",
+      label.padding = unit(c(0.3, 0.3, 0.3, 0.3), "lines"),
+      fontface = "bold",
+      colour = "white",
+      alpha = 0.9
+    ) +
+    # Main text layer
+    ggtext::geom_richtext(
+      aes(label = value_label), 
+      size = col_label_size,  # Fixed size in mm
+      vjust = -0.1,
+      fill = NA,
+      label.color = NA,
+      fontface = "bold",
+      colour = "grey20"
+    ) +
+    theme_void() +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.65))) +
+    scale_fill_manual(values = unname(app_colours)) +
+    theme(
+      legend.position = "none",
+      plot.margin = margin(5, 5, 5, 5, "pt"),
+      axis.line.x = element_line(linewidth = 1, colour = "grey30"),
+      panel.grid = element_blank(),
+      plot.title = element_markdown(size = rel(1.2), hjust = 0.5),
+      plot.caption = element_markdown(size = rel(1.7), hjust = 0.5, 
+                                      margin = margin(t = 5), 
+                                      face = "bold")
+    ) +
+    labs(caption = data$sub_text[1], y = NULL, x = NULL)
+}
   
   
   # Use the pre-rendered UI in your output
@@ -1553,27 +1575,21 @@ server <- function(input, output, session) {
   
   
   # Plot outputs - render directly from the chart data
-  output$chart1 <- renderPlot({
-    # Only proceed when calculated_primary_size is available
-    fontSize <- input$calculated_primary_size %||% 15
-    create_plot(mortality_chart_data(), font_size = fontSize)
-  }) %>% bindCache(input$scenario_select, input$grp_select)
-  
-  output$chart2 <- renderPlot({
-    fontSize <- input$calculated_primary_size %||% 15
-    create_plot(los_chart_data(), font_size = fontSize)
-  }) %>% bindCache(input$scenario_select, input$grp_select)
-  
-  output$chart3 <- renderPlot({
-    fontSize <- input$calculated_primary_size %||% 15
-    create_plot(resp_chart_data(), font_size = fontSize)
-  }) %>% bindCache(input$scenario_select, input$grp_select)
-  
-  output$chart4 <- renderPlot({
-    fontSize <- input$calculated_primary_size %||% 15
-    create_plot(handover_chart_data(), font_size = fontSize)
-  }) %>% bindCache(input$scenario_select, input$grp_select)
-  
+output$chart1 <- renderPlot({
+  create_plot(mortality_chart_data())
+}, res = 96) %>% bindCache(input$scenario_select, input$grp_select)
+
+output$chart2 <- renderPlot({
+  create_plot(los_chart_data())
+}, res = 96) %>% bindCache(input$scenario_select, input$grp_select)
+
+output$chart3 <- renderPlot({
+  create_plot(resp_chart_data())
+}, res = 96) %>% bindCache(input$scenario_select, input$grp_select)
+
+output$chart4 <- renderPlot({
+  create_plot(handover_chart_data())
+}, res = 96) %>% bindCache(input$scenario_select, input$grp_select)
 
   
   outputOptions(output, "scenario_table", suspendWhenHidden = FALSE)

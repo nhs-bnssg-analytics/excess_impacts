@@ -1274,12 +1274,6 @@ out_2 <- get_impact_data(report_start = report_start - ddays(7),
                          report_end = report_end - ddays(7))
 
 
-foo <- 
-  seq.Date(from = report_end - dweeks(26), to = report_end, by = "week") %>%
-  map(\(x) get_impact_data(report_start = x - ddays(6), report_end = x)
-)
-
-
 
 
 # Write to MYSQL
