@@ -25,9 +25,8 @@ FROM (
   pull(max_date) %>%
   ymd()
 
-
 report_end <- max_date
-report_start <- report_end - ddays(6)
+report_start <- report_end - dweeks(10)
 
 # report_start <-  ymd("2024-12-01")
 # report_end <- ymd("2025-11-30")
@@ -466,6 +465,7 @@ get_impact_data <- function(report_start, report_end){
           "10 (least deprived)"
         )
       )) %>%
+      mutate(week = floor_date(arrival_dt, "week")) %>%
       mutate(wkend = factor(ifelse(wday(arrival_dt, week_start = 1) < 6, "No", "Yes"))) %>%
       mutate(arrival_time = factor(hms::as_hms(floor_date(arrival_dt, "6 hour")))) %>%
       mutate(arrival_time = forcats::fct_recode(arrival_time,
@@ -485,6 +485,7 @@ get_impact_data <- function(report_start, report_end){
       left_join(site_resus_maj) %>%
       mutate(nctr = nctr/total) %>%
       select(
+        week,
         nhs_number,
         wkend,
         arrival_time,
@@ -518,7 +519,7 @@ get_impact_data <- function(report_start, report_end){
 
   downstream_impacts <- dat_downstream %>%
     bind_rows(mutate(., site = "System total")) %>%
-    nest(.by = site) %>%
+    nest(.by = c(site, week)) %>%
     mutate(data = map(data, \(d) bake(vw_impute_rec, new_data = mutate(d, vw_score = NA_real_)))) %>%
     mutate(n_exposure = map_dbl(data, nrow)) %>%
     mutate(pred_mort = map(data, \(d) predict(mort_mod, newdata = d, type = "response", re.form = NA))) %>%
@@ -546,11 +547,12 @@ get_impact_data <- function(report_start, report_end){
     # mutate(om5_mean_or = map2_dbl(pred_readm, pred_readm_cf, ~mean((.x/(1-.x))/(.y/(1-.y))-1, na.rm = TRUE))) %>%
     # mutate(om4_impact = map2_dbl(pred_los, pred_los_cf, ~sum(.x-.y, na.rm = TRUE))) %>%
     select(grp = site,
+          week,
            matches("om"),
            om4_n_exposure = n_exposure,
            om5_n_exposure = n_exposure,
            om6_n_exposure = n_exposure) %>%
-    pivot_longer(-grp, names_to = "impact") %>%
+    pivot_longer(-c(grp, week), names_to = "impact") %>%
     mutate(target = NA_real_,
            label = case_when(
                       str_detect(impact, "n_exposure") ~ "number impacted",
@@ -562,26 +564,7 @@ get_impact_data <- function(report_start, report_end){
             emph_text = number(round(value), big.mark = ","),
             sub_text = str_to_title(label))
     
-    
-    # mutate(level = case_when(str_detect(impact, "impact") ~ "aggregate",
-    #                          !str_detect(impact, "impact|n_exposure") ~ "individual",
-    #                          .default = NA_character_), 
-    #        impact = str_remove(impact, "_impact"),
-    #        label = case_when(
-    #          str_detect(impact, "n_exposure") ~ "number impacted",
-    #          impact == "om4" ~ "days more LOS",
-    #          impact == "om4_mean" ~ "average days more LOS",
-    #          impact == "om5" ~ "readmissions",
-    #          impact == "om5_mean_or" ~ "average increase in odds of readmission",
-    #          impact == "om6" ~ "deaths",
-    #          impact == "om6_mean_or" ~ "average increase in odds of mortality"
-    #        ),
-    #        colour = case_when(
-    #          str_detect(impact, "om4") ~ "#006d77",
-    #          str_detect(impact, "om5") ~ "#f07d24",
-    #          str_detect(impact, "om6") ~ "#ef5546"
-    #        )
-    # )
+
   
   
   
@@ -1272,6 +1255,7 @@ out <- get_impact_data(report_start = report_start,
 
 out_2 <- get_impact_data(report_start = report_start - ddays(7),
                          report_end = report_end - ddays(7))
+
 
 
 
