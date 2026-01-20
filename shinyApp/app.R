@@ -61,7 +61,7 @@ on.exit(dbDisconnect(conn))
 
 # setwd("/srv/shiny-server/")
 
-impacts_output_raw  <-DBI::dbGetQuery(conn, "select * from excess_impacts") %>%
+impacts_output_raw  <- DBI::dbGetQuery(conn, "select * from excess_impacts") %>%
   mutate(report_date = ymd(report_date)) %>%
   mutate(grp = recode(grp,
                       "System total" = "BNSSG total (Bristol Royal Infirmary, Southmead Hospital, & Weston General Hospital)",
