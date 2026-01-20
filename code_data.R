@@ -26,7 +26,9 @@ FROM (
   ymd()
 
 report_end <- max_date
-report_start <- report_end - dweeks(10)
+report_start <- report_end - ddays(69) # 70 days inclusive of report_end == 10 weeks
+
+
 
 # report_start <-  ymd("2024-12-01")
 # report_end <- ymd("2025-11-30")
@@ -465,7 +467,7 @@ get_impact_data <- function(report_start, report_end){
           "10 (least deprived)"
         )
       )) %>%
-      mutate(week = floor_date(arrival_dt, "week")) %>%
+      mutate(week = ceiling_date(as.Date(arrival_dt), unit = "week", week_start = wday(report_end, week_start = 1), change_on_boundary = FALSE)) %>%
       mutate(wkend = factor(ifelse(wday(arrival_dt, week_start = 1) < 6, "No", "Yes"))) %>%
       mutate(arrival_time = factor(hms::as_hms(floor_date(arrival_dt, "6 hour")))) %>%
       mutate(arrival_time = forcats::fct_recode(arrival_time,
@@ -851,8 +853,7 @@ Conveyed_To_Ward_Type = 'A&E' AND
     list(dta_df = dat_dtas, dta_top_stats = dat_top_stats)
   })
   
-  dta_df <- dat_dtas$dta_df
-  dta_top_stats <- dat_dtas$dta_top_stats
+  list2env(dat_dtas[c("dta_df", "dta_top_stats")], envir = environment())
   
   dat_ed_time <- local({
     
@@ -991,7 +992,8 @@ AND
   
   
   ed_attend_impact <- dat_ed_time %>%
-      left_join(dta_df %>% select(site, dt, n_dta_norm)) %>%
+    left_join(dta_df %>% select(site, dt, n_dta_norm)) %>%
+    mutate(week = ceiling_date(as.Date(dt), unit = "week", week_start = wday(report_end, week_start = 1), change_on_boundary = FALSE)) %>%
     mutate(ed_time_impact = (n_dta_norm * ed_time_coef)) %>%
     mutate(ed_time_impact_cf = (pmin(n_dta_norm, 0.25) * ed_time_coef)) %>%
     mutate(ed_time_impact_full_cf = 0) %>%
@@ -1003,9 +1005,9 @@ AND
     summarise(across(c(trt_time, trt_time_cf, trt_time_full_cf), \(x) mean(x < 4*60, na.rm = TRUE)),
               diff = sum(diff, na.rm = TRUE),
               diff_full = sum(diff_full, na.rm = TRUE),
-              om3_n_exposure = n(),.by = site) %>%
+              om3_n_exposure = n(),.by = c(week,site)) %>%
     rename(grp = site, om3_impact= trt_time, om3_impact_cf = trt_time_cf, om3_raw = diff, om3_full_raw = diff_full) %>%
-    pivot_longer(-grp, names_to = "impact") %>%
+    pivot_longer(-c(week, grp), names_to = "impact") %>%
     mutate(target = 0.78,
            label = case_when(
               impact %in% c("om3_impact", "om3_impact_cf", "om3_impact_full_cf") ~ "4-hour seen for treatment performance",
@@ -1024,38 +1026,14 @@ AND
              )
            )
 
-    # select(-n_dta_norm) %>%
-    # summarise(om3_n_exposure = sum(n_arrival_all),
-    #           ed_time_impact = sum(ed_time_impact),
-    #           .by = site) %>%
-    # mutate(ed_time_impact_mean = ed_time_impact/om3_n_exposure) %>%
-    # select(grp = site, ed_time_impact, ed_time_impact_mean, om3_n_exposure)  %>%
-    # pivot_longer(-grp, names_to = "impact") %>%
-    # mutate(impact = recode(impact,
-    #                        "ed_time_impact" = "om3",
-    #                        "ed_time_impact_mean" = "om3_mean"
-    # )) %>%
-    # mutate(
-    #   level = case_when(
-    #     impact == "om3" ~ "aggregate",
-    #     impact == "om3_mean" ~ "individual"
-    #   ),
-    #   label = case_when(
-    #     str_detect(impact, "n_exposure") ~ "number exposed",
-    #     impact == "om3" ~ "hours longer to be seen for treatment in ED",
-    #     impact == "om3_mean" ~ "average hours waited longer to be seen for treatment in ED"
-    #   ),
-    #   colour = case_when(
-    #     impact == "om3" ~ "#A89532",
-    #     impact == "om3_mean" ~ "#A89532"
-    #   )) 
-  
+
   
   
   handover_impact <- handover_arrivals %>%
     ungroup() %>%
     mutate(handover_time = handover_time/60) %>%
     left_join(select(dta_df, site, dt, n_dta_norm)) %>%
+    mutate(week = ceiling_date(as.Date(dt), unit = "week", week_start = wday(report_end, week_start = 1), change_on_boundary = FALSE)) %>%
     mutate(handover_time_impact = (n_dta_norm * handover_coef)) %>%
     mutate(handover_time_impact_cf = (pmin(n_dta_norm, 0.25) * handover_coef)) %>%
     mutate(handover_time_impact_full_cf = 0) %>%
@@ -1068,9 +1046,9 @@ AND
               diff = sum(diff, na.rm = TRUE),
               diff_full = sum(diff_full, na.rm = TRUE),
               om2_n_exposure = n(),
-              .by = site) %>%
+              .by = c(week, site)) %>%
     rename(grp = site, om2_impact= handover_time, om2_impact_cf = handover_time_cf, om2_impact_full_cf = handover_time_full_cf, om2_raw = diff, om2_full_raw = diff_full) %>%
-    pivot_longer(-grp, names_to = "impact") %>%
+    pivot_longer(-c(week, grp), names_to = "impact") %>%
     mutate(target = 30,
            label = case_when(
              impact %in% c("om2_impact", "om2_impact_cf", "om2_impact_full_cf") ~ "90th percentile ambulance handover time",
@@ -1089,40 +1067,6 @@ AND
            )
     )
   
-    # dta_df %>%
-    # select(site, dt, n_arrival_all, n_dta_norm) %>%
-    # left_join() %>%
-    # mutate(n_handover = coalesce(n, 0)) %>%
-    # select(-n, -dt) %>%
-    # mutate(
-    #   handover_impact = (n_dta_norm * handover_coef * n_handover)/60,
-    # ) %>%
-    # select(-n_dta_norm) %>%
-    # summarise(om2_n_exposure = sum(n_handover),
-    #           handover_impact = sum(handover_impact),
-    #           .by = site) %>%
-    # mutate(handover_impact_mean = handover_impact/om2_n_exposure) %>%
-    # select(grp = site, handover_impact, handover_impact_mean, om2_n_exposure)  %>%
-    # pivot_longer(-grp, names_to = "impact") %>%
-    # mutate(impact = recode(impact,
-    #                        "handover_impact" = "om2",
-    #                        "handover_impact_mean" = "om2_mean"
-    # )) %>%
-    # mutate(
-    #   level = case_when(
-    #     impact == "om2" ~ "aggregate",
-    #     impact == "om2_mean" ~ "individual"
-    #   ),
-    #   label = case_when(
-    #     str_detect(impact, "n_exposure") ~ "number impacted",
-    #     impact == "om2" ~ "hours longer for ambulance handover",
-    #     impact == "om2_mean" ~ "average hours waited longer for ambulance handover"
-    #   ),
-    #   colour = case_when(
-    #     impact == "om2" ~ "#9532a8",
-    #     impact == "om2_mean" ~ "#9532a8"
-    #   )) 
-  
   
   
   resp_impact <- resp_df %>%
@@ -1132,6 +1076,7 @@ AND
     summarise(n_dta_norm = mean(n_dta_norm), .by = dt)
     ) %>%
     left_join(rename(unnest(enframe(resp_coef), value), call_category = name, coef = value)) %>%
+    mutate(week = ceiling_date(as.Date(dt), unit = "week", week_start = wday(report_end, week_start = 1), change_on_boundary = FALSE)) %>%
     mutate(response_impact = (n_dta_norm * coef)) %>%
     mutate(response_impact_cf = (pmin(n_dta_norm, 0.25) * coef))  %>%
     mutate(response_impact_full_cf = 0)  %>%
@@ -1143,9 +1088,9 @@ AND
               diff = sum(diff, na.rm = TRUE),
               diff_full = sum(diff_full, na.rm = TRUE),
               om1_n_exposure = n(),
-              .by = call_category) %>%
+              .by = c(week, call_category)) %>%
     rename(grp = call_category, om1_impact= response, om1_impact_cf = response_cf, om1_impact_full_cf = response_full_cf, om1_raw = diff, om1_full_raw = diff_full) %>%
-    pivot_longer(-grp, names_to = "impact") %>%
+    pivot_longer(-c(week, grp), names_to = "impact") %>%
     mutate(
       label = case_when(
         impact %in% c("om1_impact", "om1_impact_cf", "om1_impact_full_cf") ~ "90th percentile ambulance response",
@@ -1174,49 +1119,7 @@ AND
     ))
 
     
-  
-  # resp_impact <- dta_df %>%
-  #   select(site, dt, n_dta_norm) %>%
-  #   summarise(n_dta_norm = mean(n_dta_norm), .by = dt) %>% 
-  #   # expand_grid(call_category = unique(resp_df$call_category)) %>%
-  #   left_join(complete(resp_df, dt = snapshot_seq, call_category, fill = list(n = 0, response = 0))) %>%
-  #   select(-dt) %>%
-  #   left_join(unnest(enframe(resp_coef, name = "call_category", value = "coef"), cols = coef)) %>% 
-  #   mutate(
-  #     resp_impact = (n_dta_norm * coef * n)/60
-  #   ) %>% 
-  #   select(-c(n_dta_norm, coef)) %>%
-  #   summarise(n_exposure = sum(n),
-  #             resp_impact = sum(resp_impact),
-  #             .by = call_category)  %>%
-  #   mutate(resp_impact_mean = resp_impact/n_exposure) %>%
-  #   select(grp = call_category, resp_impact, resp_impact_mean, n_exposure)  %>%
-  #   pivot_longer(-grp, names_to = "impact") %>%
-  #   mutate(impact = case_when(
-  #     grp == "cat1" & str_detect(impact, "resp_impact") ~ str_replace(impact, "resp_impact", "om1a"),
-  #     grp == "cat2" & str_detect(impact, "resp_impact") ~ str_replace(impact, "resp_impact", "om1b"),
-  #     grp == "cat3" & str_detect(impact, "resp_impact") ~ str_replace(impact, "resp_impact", "om1c"),
-  #     grp == "cat1" & str_detect(impact, "n_exposure") ~ str_c("om1a_", impact),
-  #     grp == "cat2" & str_detect(impact, "n_exposure") ~ str_c("om1b_", impact),
-  #     grp == "cat3" & str_detect(impact, "n_exposure") ~ str_c("om1c_", impact),
-  #     .default = impact
-  #   )
-  #   ) %>%
-  #   mutate(
-  #     level = case_when(
-  #       str_detect(impact, "om1[abc]$") ~ "aggregate",
-  #       str_detect(impact, "om1[abc]_mean$") ~ "individual"
-  #     ),
-  #     label = case_when(
-  #       str_detect(impact, "n_exposure") ~ "number impacted",
-  #       str_detect(impact, "om1[abc]$") ~ "hours longer for ambulance response",
-  #       str_detect(impact, "om1[abc]_mean$") ~ "average hours waited longer for ambulance response"
-  #     ),
-  #     colour = case_when(
-  #       str_detect(impact, "om1[abc]$") ~ "#32A895",
-  #       str_detect(impact, "om1[abc]_mean$") ~ "#32A895"
-  #     )) 
-  
+
   
   dta_top_stats <- dta_top_stats %>%
     rename(grp = Site_Name) %>%
@@ -1252,10 +1155,6 @@ AND
 
 out <- get_impact_data(report_start = report_start,
                        report_end = report_end)
-
-out_2 <- get_impact_data(report_start = report_start - ddays(7),
-                         report_end = report_end - ddays(7))
-
 
 
 

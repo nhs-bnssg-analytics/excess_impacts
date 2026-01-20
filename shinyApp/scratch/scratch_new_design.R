@@ -7,6 +7,8 @@ foo <- map(ends, \(d) get_impact_data(report_start = d-ddays(7),
 library(emojifont)
 load.fontawesome()
 
+library(ggplot2)
+library(patchwork)
 library(ggtext)
 
 excess_data <- foo %>%
@@ -92,7 +94,6 @@ design <- "
   ABC
   ABC
 "
-
 
 
 

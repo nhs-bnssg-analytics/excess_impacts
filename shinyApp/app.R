@@ -1441,7 +1441,7 @@ create_plot <- function(data) {
       colour = "grey20"
     ) +
     theme_void() +
-    scale_y_continuous(expand = expansion(mult = c(0, 0.65))) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.5))) +
     scale_fill_manual(values = unname(app_colours)) +
     theme(
       legend.position = "none",
