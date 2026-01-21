@@ -117,7 +117,7 @@ html, body, .bslib-page-fill, .bslib-sidebar-layout {
 }
 
 .app-standard-text {
-  font-size: 0.95vw !important;
+  font-size: 18px !important;
   line-height: 1.5 !important;
   margin: 5px 0 !important;
   font-weight: 400 !important;
@@ -150,47 +150,6 @@ html, body, .bslib-page-fill, .bslib-sidebar-layout {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* ==========================================================================
-   6. SCENARIO GRID & COMPARISON TOOLS
-   ========================================================================== */
-.scenario-grid {
-  display: grid;
-  grid-template-columns: 5fr 4fr 3fr;
-  width: 100%;
-  min-height: 60px;
-  padding: 0 10px;
-  align-items: center;
-  white-space: normal;
-  overflow: visible !important;
-}
-
-.scenario-vs, .scenario-arrow {
-  font-size: 24px;
-  font-weight: bold;
-  color: #666;
-  margin: 0;
-}
-
-.scenario-label {
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.scenario-indicator {
-  width: 20px;
-  height: 20px;
-  margin-right: 8px;
-  border-radius: 3px;
-}
-
-.scenario-bracket {
-  font-size: 40px;
-  font-weight: 300;
-  margin: 0 5px;
-  color: #555;
-}
 
 /* ==========================================================================
    7. TABLES & RADIO SELECTION

@@ -63,6 +63,8 @@ format_date_interval <- function(end_date) {
 }
 
 
+
+
 excess_data <- impacts_output_raw %>%
   filter(str_detect(impact, "^om[4,6]_impact(_full_cf)?$")) %>% 
   filter(str_to_title(grp) != "System Total") %>% # Filter out raw total
@@ -80,6 +82,8 @@ excess_data <- impacts_output_raw %>%
   arrange(week, grp) %>%
   mutate(week = lubridate::ymd(week))
 
+# UI SECTION -------------------------------------------------------------
+
 ui <- page_fluid(
   # Link to external CSS file
   tags$head(
@@ -90,8 +94,8 @@ ui <- page_fluid(
       width = 10,
       offset = 1,
 
-      h2("Avoidable Impacts"),
-      h5(
+      h3("Avoidable Impacts"),
+      h6(
         "A weekly-refreshed report on patient harm associated with delays to emergency admissions",
         style = "font-style: italic;"
       ),
@@ -117,11 +121,11 @@ ui <- page_fluid(
               style = "display: flex; flex-direction: column; gap: 4px;",
               span(
                 "Estimated number of avoidable deaths",
-                style = "font-weight: bold; font-size: 1.5rem;"
+                style = "font-weight: bold; font-size: 1.2rem;"
               ),
               span(
                 "(number of deaths that wouldn't have occurred if zero ED admission delays)",
-                style = "font-weight: normal; font-size: 0.9rem; color: #666;"
+                style = "font-weight: normal; font-size: 0.8rem; color: #666;"
               )
             )
           ),
@@ -139,11 +143,11 @@ ui <- page_fluid(
               style = "display: flex; flex-direction: column; gap: 4px;",
               span(
                 "Estimated avoidable acute bed utilisation",
-                style = "font-weight: bold; font-size: 1.5rem;"
+                style = "font-weight: bold; font-size: 1.2rem;"
               ),
               span(
                 "(number of acute beds that could be recovered for the system if zero ED admission delays)",
-                style = "font-weight: normal; font-size: 0.9rem; color: #666;"
+                style = "font-weight: normal; font-size: 0.8rem; color: #666;"
               )
             )
           ),
@@ -156,6 +160,8 @@ ui <- page_fluid(
   )
 )
 
+
+# SERVER SECTION ---------------------------------------------------------
 server <- function(input, output, session) {
   
   # First patchwork plot
@@ -267,7 +273,7 @@ bed_p_total / bed_p_sites + plot_layout(heights = c(1, 3))
 
   output$header <- renderUI({
 
-    h5(
+    div(
       style = "line-height: 1.2; margin: 0;", # Increased line-height from 1.4 to 1.5
       HTML(glue::glue(
         "<p class='app-standard-text' style='margin: 2.5px 0; max-height: none;'><span>Delays in admitting patients from the ED are associated with increased mortality and longer acute lengths of stay. <strong>In the 10 weeks to {max_date}</strong>, the <b>{scales::number(n_dta, big.mark = ',')} medical admissions</b> from BNSSG EDs had a combined admission delay of <b>{scales::number(dta_time/60, big.mark = ',')} hours</b> ({scales::number(dta_time/(24*60), big.mark = ',')} days). Estimates of the avoidable impacts associated with these delays are detailed below. These estimates are based on multivariable regression modelling which has been externally peer-review validated.</p>"
