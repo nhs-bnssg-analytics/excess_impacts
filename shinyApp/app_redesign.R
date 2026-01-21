@@ -34,7 +34,8 @@ on.exit(dbDisconnect(conn))
 
 impacts_output_raw  <- DBI::dbGetQuery(conn, "select * from excess_impacts_dev") 
 n_dta <- impacts_output_raw %>% filter(grp == 'System total', impact == 'n_dta') %>% pull(value) %>% head(1)
-dta_time <- impacts_output_raw %>% filter(grp == 'System total', impact == 'n_dta') %>% pull(emph_text) %>% head(1)
+dta_time <- impacts_output_raw %>% filter(grp == 'System total', impact == 'dta_time') %>% pull(value) %>% head(1)
+max_date <- impacts_output_raw %>% filter(week == max(week, na.rm = TRUE)) %>% pull(week) %>% head(1) %>% lubridate::ymd() %>% format(format ="%d %B")
 
 
 
@@ -47,7 +48,7 @@ hospital_levels <- c(
 
 axis_shade <- "grey40"
 col_width <- 6
-b_s <- 18
+b_s <- 9
 
 format_date_interval <- function(end_date) {
   # Ensure the input is a Date object
@@ -80,42 +81,77 @@ excess_data <- impacts_output_raw %>%
   mutate(week = lubridate::ymd(week))
 
 ui <- page_fluid(
-  
   # Link to external CSS file
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
   ),
   fluidRow(
     column(
-      width = 10, offset = 1,
+      width = 10,
+      offset = 1,
 
-  h2("Excess Impacts"),
-  card(
-    full_screen = FALSE,
-    # min_height = "3vh",
-    class = "no-border-no-pad header-card",
-    style = "overflow: hidden !important; margin-bottom: 3vh; flex-shrink: 0;",
-    gap = "0vh",
-    uiOutput("header")
-  ),
-  
-  layout_columns(
-    col_widths = c(9, 3),
-    
-    card(
-      card_header("Estimated weekly excess deaths due to delays in emergency admissions"),
-      card_body(
-        plotOutput("patchwork_plot1", height = "400px")
+      h2("Avoidable Impacts"),
+      h5(
+        "A weekly-refreshed report on patient harm associated with delays to emergency admissions",
+        style = "font-style: italic;"
+      ),
+      p(),
+      card(
+        full_screen = FALSE,
+        class = "no-border-no-pad header-card",
+        style = "overflow: hidden !important; margin-bottom: 3vh; flex-shrink: 0;",
+        gap = "0vh",
+        uiOutput("header")
+      ),
+      p(),
+
+      layout_columns(
+        col_widths = c(8, 4),
+
+        card(
+          class = "border-0 shadow-none",
+          card_header(
+            # Centering the entire header content
+            class = "text-center",
+            div(
+              style = "display: flex; flex-direction: column; gap: 4px;",
+              span(
+                "Estimated number of avoidable deaths",
+                style = "font-weight: bold; font-size: 1.5rem;"
+              ),
+              span(
+                "(number of deaths that wouldn't have occurred if zero ED admission delays)",
+                style = "font-weight: normal; font-size: 0.9rem; color: #666;"
+              )
+            )
+          ),
+          card_body(
+            plotOutput("patchwork_plot1", height = "70vh")
+          )
+        ),
+
+        card(
+          class = "border-0 shadow-none",
+          card_header(
+            # Centering the entire header content
+            class = "text-center",
+            div(
+              style = "display: flex; flex-direction: column; gap: 4px;",
+              span(
+                "Estimated avoidable acute bed utilisation",
+                style = "font-weight: bold; font-size: 1.5rem;"
+              ),
+              span(
+                "(number of acute beds that could be recovered for the system if zero ED admission delays)",
+                style = "font-weight: normal; font-size: 0.9rem; color: #666;"
+              )
+            )
+          ),
+          card_body(
+            plotOutput("patchwork_plot2", height = "70vh")
+          )
+        )
       )
-    ),
-    
-    card(
-      card_header("Estimated excess beds utilised due to delays in emergency admissions"),
-      card_body(
-        plotOutput("patchwork_plot2", height = "400px")
-      )
-    )
-  )
     )
   )
 )
@@ -124,7 +160,7 @@ server <- function(input, output, session) {
   
   # First patchwork plot
   output$patchwork_plot1 <- renderPlot({
-max_y <- max(excess_data$excess[excess_data$metric == "om6"], na.rm = TRUE) * 1.1 
+max_y <- max(excess_data$excess[excess_data$metric == "om6"], na.rm = TRUE) * 1.35
 
 
 # Base theme to avoid repetition
@@ -133,11 +169,13 @@ shared_theme <- theme_minimal(base_size = b_s) +
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.text.y = element_blank(),
+    axis.text.x = element_text(size = rel(1.1)),
     axis.ticks.y = element_blank(),
     axis.title = element_blank(),
     axis.line.x = element_line(color = axis_shade, linewidth = 1.5),
     strip.background = element_blank(),
-    strip.text = element_text(size = rel(1.1), face = "bold", hjust = 0.5)
+    strip.text = element_text(size = rel(1.7), face = "bold", hjust = 0.5),
+    strip.placement = "outside"
   )
 
 # Plot A: System Total
@@ -145,7 +183,7 @@ p_total <- excess_data %>%
   filter(metric == "om6", grp == "System Total") %>%
   ggplot(aes(x = week, y = excess)) +
   geom_col(width = col_width, fill = "#88a687") + # Slightly darker green for total
-  geom_text(aes(label = round(excess)), vjust = -1) +
+  geom_text(aes(label = round(excess)), size = 0.7*b_s, vjust = -1) +
   scale_y_continuous(limits = c(0, max_y), expand = c(0, 0)) +
   #   scale_x_date(
   #   breaks = unique(excess_data$week),
@@ -153,10 +191,10 @@ p_total <- excess_data %>%
   # ) +
   scale_x_date(
   breaks = unique(excess_data$week),
-  labels = ~ paste0(format(.x - 6, "%b %d"), "\nto\n", format(.x, "%b %d"))
+  labels = ~ paste0(format(.x - 6, "%b %d"), "\n—\n ", format(.x, "%b %d"))
 ) +
   labs(x = NULL, y = NULL) +
-  facet_wrap(~grp) +
+  facet_wrap(~grp, strip.position = "bottom") +
   shared_theme
 
 # Plot B: Individual Sites
@@ -164,14 +202,14 @@ p_sites <- excess_data %>%
   filter(metric == "om6", grp != "System Total") %>%
   ggplot(aes(x = week, y = excess)) +
   geom_col(width = col_width, fill = "#B4CEB3") +
-  geom_text(aes(label = round(excess)), vjust = -1) +
+  geom_text(aes(label = round(excess)), size = 0.7*b_s, vjust = -1) +
   scale_y_continuous(limits = c(0, max_y), expand = c(0, 0)) +
   scale_x_date(
   breaks = unique(excess_data$week),
-  labels = ~ paste0(format(.x - 6, "%b %d"), "\nto\n", format(.x, "%b %d"))
+  labels = ~ paste0(format(.x - 6, "%b %d"), "\n—\n", format(.x, "%b %d"))
 ) +
   labs(x = NULL, y = NULL) +
-  facet_wrap(~grp, ncol = 1, axes = "all_x") +
+  facet_wrap(~grp, ncol = 1, axes = "all_x", strip.position = "bottom") +
   shared_theme
 
     p_total / p_sites + plot_layout(heights = c(1, 3))
@@ -205,9 +243,9 @@ pal <- c(
 render_bed_plot <- function(data, x_lim) {
   ggplot(data, aes(x = excess, y = fct_rev(grp), fill = grp, color = grp)) +
     geom_col(width = 0.3) +
-    geom_text(aes(label = excess), vjust = 1, hjust = -0.75, size = 6, fontface = "bold") +
+    geom_text(aes(label = excess), vjust = 1, hjust = -0.75, size = b_s, fontface = "bold") +
     geom_text(aes(label = fontawesome("fa-bed")), family = "fontawesome-webfont", 
-              vjust = -0.2, hjust = -0.75, size = 6, ) +
+              vjust = -0.2, hjust = -0.75, size = b_s, ) +
     scale_x_continuous(limits = c(0, x_lim), expand = c(0, 0)) +
     scale_fill_manual(values = pal, guide = "none") +
     scale_colour_manual(values = pal, guide = "none") +
@@ -232,7 +270,7 @@ bed_p_total / bed_p_sites + plot_layout(heights = c(1, 3))
     h5(
       style = "line-height: 1.2; margin: 0;", # Increased line-height from 1.4 to 1.5
       HTML(glue::glue(
-        "<p class='app-standard-text' style='margin: 2.5px 0; max-height: none;'><span><strong>Between {format_date_interval(max(excess_data$week))}</strong>, our emergency departments saw <b>{n_dta} medical admissions</b>. These patients spent a combined <b>{dta_time} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays have on patient outcomes.<strong> From this we estimate the weekly excess deaths and bed occupied:</strong></span></p>"
+        "<p class='app-standard-text' style='margin: 2.5px 0; max-height: none;'><span>Delays in admitting patients from the ED are associated with increased mortality and longer acute lengths of stay. <strong>In the 10 weeks to {max_date}</strong>, the <b>{scales::number(n_dta, big.mark = ',')} medical admissions</b> from BNSSG EDs had a combined admission delay of <b>{scales::number(dta_time/60, big.mark = ',')} hours</b> ({scales::number(dta_time/(24*60), big.mark = ',')} days). Estimates of the avoidable impacts associated with these delays are detailed below. These estimates are based on multivariable regression modelling which has been externally peer-review validated.</p>"
       ))
     )
   })
