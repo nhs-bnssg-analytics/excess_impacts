@@ -1181,3 +1181,4 @@ query_delete <- str_c("DELETE FROM excess_impacts_dev")
 DBI::dbGetQuery(conn, query_delete)
 dbWriteTable(conn, "excess_impacts_dev", value = out, overwrite = TRUE)
 
+
