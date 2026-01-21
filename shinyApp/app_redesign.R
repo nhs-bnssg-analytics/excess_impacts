@@ -33,6 +33,9 @@ conn <- dbConnect(dbDriver("MySQL"),
 on.exit(dbDisconnect(conn))
 
 impacts_output_raw  <- DBI::dbGetQuery(conn, "select * from excess_impacts_dev") 
+n_dta <- impacts_output_raw %>% filter(grp == 'System total', impact == 'n_dta') %>% pull(value) %>% head(1)
+dta_time <- impacts_output_raw %>% filter(grp == 'System total', impact == 'n_dta') %>% pull(emph_text) %>% head(1)
+
 
 
 hospital_levels <- c(
@@ -43,7 +46,21 @@ hospital_levels <- c(
 )
 
 axis_shade <- "grey40"
-col_width <- 4
+col_width <- 6
+b_s <- 18
+
+format_date_interval <- function(end_date) {
+  # Ensure the input is a Date object
+  end_date <- as.Date(end_date)
+  start_date <- end_date - 69
+  
+  if (format(start_date, "%m") == format(end_date, "%m")) {
+    return(paste0(format(start_date, "%d"), "-", format(end_date, "%d"), " ", format(start_date, "%B")))
+  } else {
+    return(paste0(format(start_date, "%d"), " ", format(start_date, "%B"), " - ", format(end_date, "%d"), " ", format(end_date, "%B")))
+  }
+}
+
 
 excess_data <- impacts_output_raw %>%
   filter(str_detect(impact, "^om[4,6]_impact(_full_cf)?$")) %>% 
@@ -62,27 +79,43 @@ excess_data <- impacts_output_raw %>%
   arrange(week, grp) %>%
   mutate(week = lubridate::ymd(week))
 
-ui <- page_fillable(
-  padding = 20,
-  h2("Patchwork Plot Dashboard"),
-  p("This dashboard displays two sets of combined plots using the patchwork package. 
-    Each card contains multiple ggplot2 visualizations arranged together."),
+ui <- page_fluid(
+  
+  # Link to external CSS file
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
+  ),
+  fluidRow(
+    column(
+      width = 10, offset = 1,
+
+  h2("Excess Impacts"),
+  card(
+    full_screen = FALSE,
+    # min_height = "3vh",
+    class = "no-border-no-pad header-card",
+    style = "overflow: hidden !important; margin-bottom: 3vh; flex-shrink: 0;",
+    gap = "0vh",
+    uiOutput("header")
+  ),
   
   layout_columns(
     col_widths = c(9, 3),
     
     card(
-      card_header("Plot Set 1"),
+      card_header("Estimated weekly excess deaths due to delays in emergency admissions"),
       card_body(
         plotOutput("patchwork_plot1", height = "400px")
       )
     ),
     
     card(
-      card_header("Plot Set 2"),
+      card_header("Estimated excess beds utilised due to delays in emergency admissions"),
       card_body(
         plotOutput("patchwork_plot2", height = "400px")
       )
+    )
+  )
     )
   )
 )
@@ -95,7 +128,7 @@ max_y <- max(excess_data$excess[excess_data$metric == "om6"], na.rm = TRUE) * 1.
 
 
 # Base theme to avoid repetition
-shared_theme <- theme_minimal() +
+shared_theme <- theme_minimal(base_size = b_s) +
   theme(
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
@@ -114,10 +147,14 @@ p_total <- excess_data %>%
   geom_col(width = col_width, fill = "#88a687") + # Slightly darker green for total
   geom_text(aes(label = round(excess)), vjust = -1) +
   scale_y_continuous(limits = c(0, max_y), expand = c(0, 0)) +
-    scale_x_date(
-    date_breaks = "1 week",
-    labels = label_date_short()
-  ) +
+  #   scale_x_date(
+  #   breaks = unique(excess_data$week),
+  #   labels = label_date_short(sep = "/"),
+  # ) +
+  scale_x_date(
+  breaks = unique(excess_data$week),
+  labels = ~ paste0(format(.x - 6, "%b %d"), "\nto\n", format(.x, "%b %d"))
+) +
   labs(x = NULL, y = NULL) +
   facet_wrap(~grp) +
   shared_theme
@@ -129,9 +166,9 @@ p_sites <- excess_data %>%
   geom_col(width = col_width, fill = "#B4CEB3") +
   geom_text(aes(label = round(excess)), vjust = -1) +
   scale_y_continuous(limits = c(0, max_y), expand = c(0, 0)) +
-    scale_x_date(
-  date_breaks = "1 week",
-  labels = label_date_short()
+  scale_x_date(
+  breaks = unique(excess_data$week),
+  labels = ~ paste0(format(.x - 6, "%b %d"), "\nto\n", format(.x, "%b %d"))
 ) +
   labs(x = NULL, y = NULL) +
   facet_wrap(~grp, ncol = 1, axes = "all_x") +
@@ -157,15 +194,24 @@ bed_data <- bind_rows(bed_data_total, bed_data_site) %>%
 # Find a common X limit for the bed plot
 max_x_bed <- max(bed_data$excess) * 1.3
 
+pal <- c(
+    "System Total" =  "#6b838a",
+      "Southmead Hospital" = "#88a0a8",
+      "Bristol Royal Infirmary" = "#88a0a8",
+      "Weston General Hospital" = "#88a0a8"
+    )
+    
 # Base Bed Plot Logic (Icons and Bars)
 render_bed_plot <- function(data, x_lim) {
-  ggplot(data, aes(x = excess, y = fct_rev(grp))) +
-    geom_col(width = 0.3, fill = "#88a0a8") +
+  ggplot(data, aes(x = excess, y = fct_rev(grp), fill = grp, color = grp)) +
+    geom_col(width = 0.3) +
     geom_text(aes(label = excess), vjust = 1, hjust = -0.75, size = 6, fontface = "bold") +
     geom_text(aes(label = fontawesome("fa-bed")), family = "fontawesome-webfont", 
-              vjust = -0.2, hjust = -0.75, size = 6, color = "#88a0a8") +
+              vjust = -0.2, hjust = -0.75, size = 6, ) +
     scale_x_continuous(limits = c(0, x_lim), expand = c(0, 0)) +
-    theme_minimal() +
+    scale_fill_manual(values = pal, guide = "none") +
+    scale_colour_manual(values = pal, guide = "none") +
+    theme_minimal(base_size = b_s) +
     theme(
       panel.grid = element_blank(),
       axis.text = element_blank(),
@@ -179,6 +225,19 @@ bed_p_sites <- render_bed_plot(filter(bed_data, grp != "System Total"), max_x_be
     
 bed_p_total / bed_p_sites + plot_layout(heights = c(1, 3))
   })
+
+
+  output$header <- renderUI({
+
+    h5(
+      style = "line-height: 1.2; margin: 0;", # Increased line-height from 1.4 to 1.5
+      HTML(glue::glue(
+        "<p class='app-standard-text' style='margin: 2.5px 0; max-height: none;'><span><strong>Between {format_date_interval(max(excess_data$week))}</strong>, our emergency departments saw <b>{n_dta} medical admissions</b>. These patients spent a combined <b>{dta_time} days</b> waiting for beds - a critical delay impacting both their care and the care for others in need of emergency help. Using regression analysis on data from the last 3 years, we have isolated the impact DTA delays have on patient outcomes.<strong> From this we estimate the weekly excess deaths and bed occupied:</strong></span></p>"
+      ))
+    )
+  })
+
+
 }
 
 shinyApp(ui, server)
