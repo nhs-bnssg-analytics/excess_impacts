@@ -50,7 +50,11 @@ axis_shade <- "grey40"
 col_width <- 6
 b_s <- 11
 label_pos <- -0.4
+date_formatter <- function(x, sep = "\n—\n", format = "%d %b") {
 
+  paste0(sub("^0", "", format(x-6, format)),sep , sub("^0", "", format(x, format)))
+
+}
 
 format_date_interval <- function(end_date) {
   # Ensure the input is a Date object
@@ -193,13 +197,9 @@ p_total <- excess_data %>%
   geom_col(width = col_width, fill = "#88a687") + # Slightly darker green for total
   geom_text(aes(label = round(excess)), size = 0.7*b_s, vjust = label_pos) +
   scale_y_continuous(limits = c(0, max_y), expand = c(0, 0)) +
-  #   scale_x_date(
-  #   breaks = unique(excess_data$week),
-  #   labels = label_date_short(sep = "/"),
-  # ) +
   scale_x_date(
   breaks = unique(excess_data$week),
-  labels = ~ paste0(format(.x - 6, "%-d %b"), "\n—\n ", format(.x, "%-d %b"))
+  labels =  date_formatter
 ) +
   labs(x = NULL, y = NULL) +
   facet_wrap(~grp, strip.position = "bottom") +
@@ -214,7 +214,7 @@ p_sites <- excess_data %>%
   scale_y_continuous(limits = c(0, max_y), expand = c(0, 0)) +
   scale_x_date(
   breaks = unique(excess_data$week),
-  labels = ~ paste0(format(.x - 6, "%-d %b"), "\n—\n ", format(.x, "%-d %b"))
+  labels = date_formatter
 ) +
   labs(x = NULL, y = NULL) +
   facet_wrap(~grp, ncol = 1, axes = "all_x", strip.position = "bottom") +
