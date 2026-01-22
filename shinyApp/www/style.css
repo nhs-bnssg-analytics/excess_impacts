@@ -7,7 +7,7 @@ html, body, .bslib-page-fill, .bslib-sidebar-layout {
   max-height: 100vh !important;
   margin: 0 !important;
   padding: 0 !important;
-  overflow: hidden !important;
+  /* overflow: hidden !important; */
 }
 
 .bslib-page-fill {

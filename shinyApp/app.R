@@ -91,8 +91,8 @@ ui <- page_fluid(
   ),
   fluidRow(
     column(
-      width = 9,
-      offset = 2,
+      width = 10,
+      offset = 1,
 
       h3("Avoidable Impacts Estimator"),
       h6(
