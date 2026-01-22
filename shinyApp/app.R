@@ -48,7 +48,7 @@ hospital_levels <- c(
 
 axis_shade <- "grey40"
 col_width <- 6
-b_s <- 10
+b_s <- 11
 
 format_date_interval <- function(end_date) {
   # Ensure the input is a Date object
@@ -91,8 +91,8 @@ ui <- page_fluid(
   ),
   fluidRow(
     column(
-      width = 10,
-      offset = 1,
+      width = 9,
+      offset = 2,
 
       h3("Avoidable Impacts Estimator"),
       h6(
@@ -110,7 +110,7 @@ ui <- page_fluid(
       p(),
 
       layout_columns(
-        col_widths = c(8, 4),
+        col_widths = c(7, 5),
 
         card(
           class = "border-0 shadow-none",
@@ -130,7 +130,7 @@ ui <- page_fluid(
             )
           ),
           card_body(
-            plotOutput("patchwork_plot1", height = "70vh")
+            plotOutput("patchwork_plot1", height = "75vh")
           )
         ),
 
@@ -152,7 +152,7 @@ ui <- page_fluid(
             )
           ),
           card_body(
-            plotOutput("patchwork_plot2", height = "70vh")
+            plotOutput("patchwork_plot2", height = "75vh")
           )
         )
       )
@@ -175,7 +175,7 @@ shared_theme <- theme_minimal(base_size = b_s) +
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     axis.text.y = element_blank(),
-    axis.text.x = element_text(size = rel(1.1)),
+    axis.text.x = element_text(size = rel(1.4)),
     axis.ticks.y = element_blank(),
     axis.title = element_blank(),
     axis.line.x = element_line(color = axis_shade, linewidth = 1.5),
