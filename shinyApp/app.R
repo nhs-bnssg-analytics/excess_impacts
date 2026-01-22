@@ -49,6 +49,8 @@ hospital_levels <- c(
 axis_shade <- "grey40"
 col_width <- 6
 b_s <- 11
+label_pos <- -0.4
+
 
 format_date_interval <- function(end_date) {
   # Ensure the input is a Date object
@@ -121,11 +123,11 @@ ui <- page_fluid(
               style = "display: flex; flex-direction: column; gap: 4px;",
               span(
                 "Estimated number of avoidable deaths",
-                style = "font-weight: bold; font-size: 1.2rem;"
+                style = "font-weight: bold; font-size: 1.1vw;"
               ),
               span(
                 "(number of deaths that wouldn't have occurred if zero ED admission delays)",
-                style = "font-weight: normal; font-size: 0.8rem; color: #666;"
+                style = "font-weight: normal; font-size: 0.7vw; color: #666;"
               )
             )
           ),
@@ -143,11 +145,11 @@ ui <- page_fluid(
               style = "display: flex; flex-direction: column; gap: 4px;",
               span(
                 "Estimated avoidable acute bed utilisation",
-                style = "font-weight: bold; font-size: 1.2rem;"
+                style = "font-weight: bold; font-size: 1.1vw;"
               ),
               span(
                 "(average number of acute beds in use at any time attributable solely to ED admission delays)",
-                style = "font-weight: normal; font-size: 0.8rem; color: #666;"
+                style = "font-weight: normal; font-size: 0.7vw; color: #666;white-space: nowrap; overflow: visible;"
               )
             )
           ),
@@ -189,7 +191,7 @@ p_total <- excess_data %>%
   filter(metric == "om6", grp == "System Total") %>%
   ggplot(aes(x = week, y = excess)) +
   geom_col(width = col_width, fill = "#88a687") + # Slightly darker green for total
-  geom_text(aes(label = round(excess)), size = 0.7*b_s, vjust = -1) +
+  geom_text(aes(label = round(excess)), size = 0.7*b_s, vjust = label_pos) +
   scale_y_continuous(limits = c(0, max_y), expand = c(0, 0)) +
   #   scale_x_date(
   #   breaks = unique(excess_data$week),
@@ -208,7 +210,7 @@ p_sites <- excess_data %>%
   filter(metric == "om6", grp != "System Total") %>%
   ggplot(aes(x = week, y = excess)) +
   geom_col(width = col_width, fill = "#B4CEB3") +
-  geom_text(aes(label = round(excess)), size = 0.7*b_s, vjust = -1) +
+  geom_text(aes(label = round(excess)), size = 0.7*b_s, vjust = label_pos) +
   scale_y_continuous(limits = c(0, max_y), expand = c(0, 0)) +
   scale_x_date(
   breaks = unique(excess_data$week),
