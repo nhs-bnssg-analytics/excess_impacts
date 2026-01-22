@@ -48,7 +48,7 @@ hospital_levels <- c(
 
 axis_shade <- "grey40"
 col_width <- 6
-b_s <- 9
+b_s <- 10
 
 format_date_interval <- function(end_date) {
   # Ensure the input is a Date object
@@ -94,9 +94,9 @@ ui <- page_fluid(
       width = 10,
       offset = 1,
 
-      h3("Avoidable Impacts"),
+      h3("Avoidable Impacts Estimator"),
       h6(
-        "A weekly-refreshed report on patient harm associated with delays to emergency admissions",
+        "A weekly-refreshed report on avoidable harms and bed usage associated with delays to ED admission",
         style = "font-style: italic;"
       ),
       p(),
@@ -146,7 +146,7 @@ ui <- page_fluid(
                 style = "font-weight: bold; font-size: 1.2rem;"
               ),
               span(
-                "(number of acute beds that could be recovered for the system if zero ED admission delays)",
+                "(average number of acute beds in use at any time attributable solely to ED admission delays)",
                 style = "font-weight: normal; font-size: 0.8rem; color: #666;"
               )
             )
