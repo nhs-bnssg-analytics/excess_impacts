@@ -127,7 +127,7 @@ ui <- page_fluid(
               ),
               span(
                 "(number of deaths that wouldn't have occurred if zero ED admission delays)",
-                style = "font-weight: normal; font-size: 0.7vw; color: #666;"
+                style = "font-weight: normal; font-size: 0.8vw; color: #666;"
               )
             )
           ),
@@ -149,7 +149,7 @@ ui <- page_fluid(
               ),
               span(
                 "(average number of acute beds in use at any time attributable solely to ED admission delays)",
-                style = "font-weight: normal; font-size: 0.7vw; color: #666;white-space: nowrap; overflow: visible;"
+                style = "font-weight: normal; font-size: 0.8vw; color: #666;white-space: nowrap; overflow: visible;"
               )
             )
           ),
