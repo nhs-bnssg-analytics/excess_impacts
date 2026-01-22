@@ -122,7 +122,7 @@ ui <- page_fluid(
             div(
               style = "display: flex; flex-direction: column; gap: 4px;",
               span(
-                "Estimated number of avoidable deaths",
+                "Estimated weekly avoidable deaths",
                 style = "font-weight: bold; font-size: 1.1vw;"
               ),
               span(
@@ -199,7 +199,7 @@ p_total <- excess_data %>%
   # ) +
   scale_x_date(
   breaks = unique(excess_data$week),
-  labels = ~ paste0(format(.x - 6, "%b %d"), "\n—\n ", format(.x, "%b %d"))
+  labels = ~ paste0(format(.x - 6, "%-d %b"), "\n—\n ", format(.x, "%-d %b"))
 ) +
   labs(x = NULL, y = NULL) +
   facet_wrap(~grp, strip.position = "bottom") +
@@ -214,7 +214,7 @@ p_sites <- excess_data %>%
   scale_y_continuous(limits = c(0, max_y), expand = c(0, 0)) +
   scale_x_date(
   breaks = unique(excess_data$week),
-  labels = ~ paste0(format(.x - 6, "%b %d"), "\n—\n", format(.x, "%b %d"))
+  labels = ~ paste0(format(.x - 6, "%-d %b"), "\n—\n ", format(.x, "%-d %b"))
 ) +
   labs(x = NULL, y = NULL) +
   facet_wrap(~grp, ncol = 1, axes = "all_x", strip.position = "bottom") +
