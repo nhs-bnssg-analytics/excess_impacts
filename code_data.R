@@ -30,6 +30,7 @@ report_start <- report_end - ddays(69) # 70 days inclusive of report_end == 10 w
 
 
 
+
 # report_start <-  ymd("2024-12-01")
 # report_end <- ymd("2025-11-30")
 
@@ -312,78 +313,8 @@ get_impact_data <- function(report_start, report_end){
     dat_spec <- arrivals %>%
       select(nhs_number, arr_id, tfc) %>%
       mutate(spec = ifelse(tfc %in% c(300, 326, 430), "medical", "not medical")) %>%
-      #mutate(MainSpecialtyCode = ifelse(MainSpecialtyCode %in% c(300, 326, 430), "medical", "not medical")) %>% 
-      #mutate(spec = ifelse(tfc == "medical" | MainSpecialtyCode == "medical", "medical", "not medical")) %>%
       select(nhs_number, arr_id, spec)
     
-    # dat_ecds_perf <- glue::glue(
-    #   "select
-    #                     NHS_Number,
-    #                     Arrival_Date,
-    #                     Arrival_Time,
-    #                     Initial_Assessment_Date,
-    #                     Initial_Assessment_Time,
-    #                     Seen_For_Treatment_Date,
-    #                     Seen_For_Treatment_Time,
-    #                     Decision_To_Admit_Date,
-    #                     Decision_To_Admit_Time,
-    #                     Departure_Date,
-    #                     Departure_Time,
-    #                     Conclusion_Date,
-    #                     Conclusion_Time,
-    #                     Site_Name,
-    #                     Acuity_Desc,
-    #                     Index_Of_Multiple_Deprivation,
-    #                     Stated_Gender,
-    #                     HES_Age_At_Arrival,
-    #                     Organisation_Code_Commissioner,
-    #                     Arrival_Mode_Desc,
-    #                     Arrival_Category_Desc,
-    #                     Attendance_Source_Desc,
-    #                     destination_desc,
-    #                     Chief_Complaint_Desc,
-    #                     Acuity_Desc,
-    #                     Diagnoses_Code_1_Desc,
-    #                     Investigation_Code_1_Desc,
-    #                     Treatment_Function_Code
-    #   FROM Analyst_SQL_Area.dbo.tbl_BNSSG_ECDS
-    #   where Site_Name in ('BRISTOL ROYAL INFIRMARY', 'SOUTHMEAD HOSPITAL', 'WESTON GENERAL HOSPITAL')
-    #   and Arrival_Date between '{ymd(report_start)}' and '{report_end}'
-    #   "
-    # ) %>%
-    #   sqlQuery(con, .) %>% mutate(NHS_Number = as.character(NHS_Number)) %>%
-    #   mutate(Treatment_Function_Code = coalesce(as.character(Treatment_Function_Code, "Missing"))) %>%
-    #   mutate(arrival_dt=as.POSIXct(paste0(Arrival_Date," ",substr(Arrival_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
-    #   mutate(initial_dt=as.POSIXct(paste0(Initial_Assessment_Date," ",substr(Initial_Assessment_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
-    #   mutate(treatment_dt=as.POSIXct(paste0(Seen_For_Treatment_Date," ",substr(Seen_For_Treatment_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
-    #   mutate(dta_dt=paste0(Decision_To_Admit_Date," ",substr(Decision_To_Admit_Time,1,8))) %>%
-    #   mutate(dta_dt=as.POSIXct(ifelse(grepl("NA",dta_dt),NA,dta_dt),format="%Y-%m-%d %H:%M:%S")) %>%
-    #   mutate(departure_dt=as.POSIXct(paste0(Departure_Date," ",substr(Departure_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
-    #   mutate(conclusion_dt=as.POSIXct(paste0(Conclusion_Date," ",substr(Conclusion_Time,1,8)),format="%Y-%m-%d %H:%M:%S")) %>%
-    #   select(
-    #     nhs_number = NHS_Number,
-    #     arrival_dt,
-    #     initial_dt,
-    #     treatment_dt,
-    #     dta_dt,
-    #     departure_dt,
-    #     conclusion_dt,
-    #     site = Site_Name
-    #   ) %>%
-    #   rowwise() %>%
-    #   mutate(departure_dt=max(dta_dt,departure_dt, conclusion_dt, na.rm=TRUE)) %>%
-    #   # mutate(departure_dt=max(departure_dt, conclusion_dt, na.rm=TRUE)) %>%
-    #   ungroup() %>%
-    #   mutate(dta_time = interval(dta_dt, departure_dt)/dminutes(1)) %>%
-    #   mutate(ed_time = interval(arrival_dt, departure_dt)/dminutes(1)) %>%
-    #   mutate(breach = (interval(arrival_dt, departure_dt)/dminutes(1)) > 4*60) %>%
-    #   mutate(arrival_hour = ceiling_date(arrival_dt, unit = "4 hour")) %>%
-    #   filter(!between(arrival_hour, ymd("2022-04-01"), ymd("2022-07-10"))) %>%
-    #   # Remove rows for weston out of hours
-    #   filter(!(site == "WESTON GENERAL HOSPITAL" & hour(arrival_dt) %in% c(10:12, 1:7))) %>%
-    #   group_by(site, arrival_hour) %>%
-    #   summarise(perf = 1-mean(breach)) %>%
-    #   ungroup()
     
     dat_dtas <- 
       dat_ecds %>%
@@ -492,8 +423,6 @@ get_impact_data <- function(report_start, report_end){
         wkend,
         arrival_time,
         arrival_month,
-        # arrival_year,
-        # perf,
         n_ed,
         age,
         sex,
@@ -502,23 +431,12 @@ get_impact_data <- function(report_start, report_end){
         time_to_dta,
         nctr,
         site
-        
-        # wkend,
-        # arrival_time,
-        # arrival_month,
-        # perf,
-        # age,
-        # n_ed,
-        # sex,
-        # imd,
-        # dta_time
       )
     
     dat
     
   })
   
-
   downstream_impacts <- dat_downstream %>%
     bind_rows(mutate(., site = "System total")) %>%
     nest(.by = c(site, week)) %>%
@@ -594,7 +512,7 @@ get_impact_data <- function(report_start, report_end){
     ,[Response_Target_2_Clock Stop]
     ,[Outcome]
     ,[Conveyed_To_Ward_Type]
-   ,b.[OrganisationName] as 'Site_Name'
+   ,b.[Name] as 'Site_Name'
     ,[First_Hospital_Attended]
     ,[First_Ward_Attended]
     ,[Time_of_Handover_at_First_Hospital_Attended]
@@ -629,10 +547,10 @@ get_impact_data <- function(report_start, report_end){
     ,c.[Time_of_Patient_Handover]
     ,c.[Time_Clear]
 FROM [ABI].[dbo].[vw_UrgentCare_Ambulance_SWASFT] a
-LEFT JOIN [ABI].[Lard].[vw_Organisation_Lookup] b on a.[First_Hospital_Attended]=b.[OrganisationCode]
+LEFT JOIN [UK_Health_Dimensions].[ODS].[All_Codes] b on a.[First_Hospital_Attended]=b.[Code]
 LEFT JOIN [Analyst_SQL_Area].[dbo].[tbl_BNSSG_Datasets_SWAST_AR119] c on a.Incident_Number=c.Call_Number
 where Outcome = 'See & Convey' AND
-b.[OrganisationName] in ('BRISTOL ROYAL INFIRMARY', 'SOUTHMEAD HOSPITAL', 'WESTON GENERAL HOSPITAL') AND
+b.[Name] in ('BRISTOL ROYAL INFIRMARY', 'SOUTHMEAD HOSPITAL', 'WESTON GENERAL HOSPITAL') AND
 Conveyed_To_Ward_Type = 'A&E' AND
   (CONVERT(DATE, [Time_Of_Incident]) > '{report_start}' OR
   CONVERT(DATE, [T0_Time_of_Call]) > '{report_start}' OR
