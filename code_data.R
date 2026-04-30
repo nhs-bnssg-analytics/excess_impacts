@@ -715,8 +715,8 @@ Conveyed_To_Ward_Type = 'A&E' AND
     arrivals_full <- 
       dat_ecds_full %>%
       filter(arrival_dt >= report_start) %>%
-      group_by() %>%
-      summarise(
+      ungroup() %>%
+      select(
         id = Attendance_Unique_Identifier,
         site = Site_Name,
         arrival_dt = arrival_dt, 
