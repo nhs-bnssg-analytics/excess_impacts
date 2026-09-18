@@ -1,7 +1,13 @@
-FROM dps_forecast_v1
+FROM rocker/shiny:latest
 
+ENV TZ="Etc/UTC"
+
+# Install system dependencies
 RUN apt-get update && apt-get install -y libcurl4-openssl-dev libxml2-dev libzstd-dev
-RUN apt update && apt -y install cron
+
+COPY scripts/bin/ /rocker_scripts/bin/
+COPY scripts/setup_R.sh /rocker_scripts/setup_R.sh
+RUN /rocker_scripts/setup_R.sh
 
 ENV CRAN="https://cloud.r-project.org"
 ENV LANG=en_US.UTF-8
@@ -22,22 +28,24 @@ RUN apt-get update && apt-get install -y \
 RUN R -e "install.packages(c('pak', 'tidyr', 'lubridate',  'bslib', 'ggtext'), repos='https://cloud.r-project.org', dependencies = TRUE, verbose = TRUE)"
 RUN R -e "pak::pkg_install('RMySQL')"
 RUN R -e "pak::pkg_install('RJDBC')"
-RUN R -e "pak::pkg_install('lme4')"
-RUN R -e "pak::pkg_install('lmerTest')"
+RUN R -e "pak::pkg_install('ggfx')"
+RUN R -e "pak::pkg_install('patchwork')"
+RUN R -e "pak::pkg_install('emojifont')"
+RUN r -e "pak::pkg_install('forcats')"
 
 
 
-# Copy the scripts
-COPY code_data.R /root/code_data.R
+ENV S6_VERSION="v2.1.0.2"
+ENV SHINY_SERVER_VERSION="latest"
+ENV PANDOC_VERSION="default"
 
-# Copy hello-cron file to the cron.d directory
-COPY crontab /etc/cron.d/crontab
+COPY scripts/install_shiny_server.sh /rocker_scripts/install_shiny_server.sh
+COPY scripts/install_s6init.sh /rocker_scripts/install_s6init.sh
+COPY scripts/install_pandoc.sh /rocker_scripts/install_pandoc.sh
+COPY scripts/init_set_env.sh /rocker_scripts/init_set_env.sh
+RUN /rocker_scripts/install_shiny_server.sh
 
-# Give execution rights on the cron job
-RUN chmod 0644 /etc/cron.d/crontab
+EXPOSE 8787
+CMD ["/init"]
 
-# Apply cron job
-RUN crontab /etc/cron.d/crontab
-
-# Run the command on container startup
-CMD printenv > /etc/environment && cron -f
+COPY scripts /rocker_scripts
