@@ -69,10 +69,10 @@ get_impact_data <- function(report_start, report_end) {
       WHERE Site_Name IN ('BRISTOL ROYAL INFIRMARY', 'BFT SOUTHMEAD SOUTHMEAD HOSPITAL', 'WESTON GENERAL HOSPITAL') 
       AND Arrival_Date BETWEEN '{report_start}' AND '{report_end}'
     ")
-    dat_ecds_raw <- sqlQuery(con, string_ecds)
+    dat_ecds_raw <- sqlQuery(con, string_ecds) %>%
+      mutate(Site_Name = recode(Site_Name, "BFT SOUTHMEAD SOUTHMEAD HOSPITAL" = "SOUThMEAD HOSPITAL"))
     
-    browser()
-    
+  
     dat_ecds <- dat_ecds_raw %>%
       mutate(nhs_number = as.character(nhs_number)) %>%
       mutate(arrival_dt = as.POSIXct(paste0(Arrival_Date, " ", substr(Arrival_Time, 1, 8)), format = "%Y-%m-%d %H:%M:%S")) %>%
