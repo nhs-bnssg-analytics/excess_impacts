@@ -66,12 +66,14 @@ get_impact_data <- function(report_start, report_end) {
     string_ecds <- glue::glue("
       SELECT nhs_number, Index_Of_Multiple_Deprivation, Stated_Gender, HES_Age_At_Arrival, Attendance_Unique_Identifier, Treatment_Function_Code, Arrival_Date, Arrival_Time, Initial_Assessment_Date, Initial_Assessment_Time, Seen_For_Treatment_Date, Seen_For_Treatment_Time, Decision_To_Admit_Date, Decision_To_Admit_Time, Organisation_Code_Commissioner, Departure_Date, Departure_Time, Site_Name, Acuity_Desc 
       FROM Analyst_SQL_Area.dbo.tbl_BNSSG_ECDS 
-      WHERE Site_Name IN ('BRISTOL ROYAL INFIRMARY', 'SOUTHMEAD HOSPITAL', 'WESTON GENERAL HOSPITAL') 
+      WHERE Site_Name IN ('BRISTOL ROYAL INFIRMARY', 'BFT SOUTHMEAD SOUTHMEAD HOSPITAL', 'WESTON GENERAL HOSPITAL')
         AND Arrival_Date BETWEEN '{report_start}' AND '{report_end}'
     ")
     dat_ecds_raw <- sqlQuery(con, string_ecds)
     
+    
     dat_ecds <- dat_ecds_raw %>%
+      mutate(Site_Name = recode(Site_Name, "BFT SOUTHMEAD SOUTHMEAD HOSPITAL" = "SOUTMEAD HOSPITAL")) %>%
       mutate(nhs_number = as.character(nhs_number)) %>%
       mutate(arrival_dt = as.POSIXct(paste0(Arrival_Date, " ", substr(Arrival_Time, 1, 8)), format = "%Y-%m-%d %H:%M:%S")) %>%
       mutate(initial_dt = as.POSIXct(paste0(Initial_Assessment_Date, " ", substr(Initial_Assessment_Time, 1, 8)), format = "%Y-%m-%d %H:%M:%S")) %>%
