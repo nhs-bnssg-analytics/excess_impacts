@@ -247,10 +247,11 @@ get_impact_data <- function(report_start, report_end) {
       ungroup() %>%
       mutate(dta_int = interval(dta_dt, departure_dt), dta_time = dta_int / dminutes(1), arr_id = cur_group_id(), .by = c(nhs_number, arrival_dt))
     
+    
     arrivals <- dat_ecds %>%
       filter(!is.na(dta_time), arrival_dt >= report_start, !is.na(nhs_number)) %>%
       group_by(nhs_number, arr_id) %>%
-      summarise(tfc = tfc[1], arrival_dt = arrival_dt, departure_dt = as.Date(departure_dt)[1], .groups = "drop")
+      summarise(tfc = tfc[1], arrival_dt = arrival_dt[1], departure_dt = as.Date(departure_dt)[1], .groups = "drop")
     
     arrivals_full <- dat_ecds %>%
       filter(arrival_dt >= report_start) %>%
