@@ -132,7 +132,7 @@ get_impact_data <- function(report_start, report_end) {
       select(nhs_number, arr_id, tfc, arrival_dt, departure_dt) %>%
       distinct() %>%
       group_by(nhs_number, arr_id) %>%
-      summarise(tfc = tfc[1], arrival_dt = arrival_dt, departure_dt = as.Date(departure_dt)[1], .groups = "drop")
+      summarise(tfc = tfc[1], arrival_dt = arrival_dt[1], departure_dt = as.Date(departure_dt)[1], .groups = "drop")
     
     dat_spec <- arrivals %>%
       select(nhs_number, arr_id, tfc) %>%
