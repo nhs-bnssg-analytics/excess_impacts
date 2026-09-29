@@ -222,6 +222,7 @@ p_sites <- excess_data %>%
 
     p_total / p_sites + plot_layout(heights = c(1, 3))
   })
+
   
   # Second patchwork plot
   output$patchwork_plot2 <- renderPlot({

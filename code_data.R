@@ -73,7 +73,7 @@ get_impact_data <- function(report_start, report_end) {
     
     
     dat_ecds <- dat_ecds_raw %>%
-      mutate(Site_Name = recode(Site_Name, "BFT SOUTHMEAD SOUTHMEAD HOSPITAL" = "SOUTMEAD HOSPITAL")) %>%
+      mutate(Site_Name = recode(Site_Name, "BFT SOUTHMEAD SOUTHMEAD HOSPITAL" = "SOUTHMEAD HOSPITAL")) %>%
       mutate(nhs_number = as.character(nhs_number)) %>%
       mutate(arrival_dt = as.POSIXct(paste0(Arrival_Date, " ", substr(Arrival_Time, 1, 8)), format = "%Y-%m-%d %H:%M:%S")) %>%
       mutate(initial_dt = as.POSIXct(paste0(Initial_Assessment_Date, " ", substr(Initial_Assessment_Time, 1, 8)), format = "%Y-%m-%d %H:%M:%S")) %>%
@@ -98,12 +98,13 @@ get_impact_data <- function(report_start, report_end) {
     string_ecds_full <- glue::glue("
       SELECT NHS_Number, Arrival_Date, Arrival_Time, Initial_Assessment_Date, Initial_Assessment_Time, Seen_For_Treatment_Date, Seen_For_Treatment_Time, Decision_To_Admit_Date, Decision_To_Admit_Time, Departure_Date, Departure_Time, Conclusion_Date, Conclusion_Time, Site_Name, Acuity_Desc, Index_Of_Multiple_Deprivation, Stated_Gender, HES_Age_At_Arrival, Organisation_Code_Commissioner, Arrival_Mode_Desc, Arrival_Category_Desc, Attendance_Source_Desc, destination_desc, Chief_Complaint_Desc, Diagnoses_Code_1_Desc, Investigation_Code_1_Desc, Treatment_Function_Code
       FROM Analyst_SQL_Area.dbo.tbl_BNSSG_ECDS
-      WHERE Site_Name IN ('BRISTOL ROYAL INFIRMARY', 'SOUTHMEAD HOSPITAL', 'WESTON GENERAL HOSPITAL')
+      WHERE Site_Name IN ('BRISTOL ROYAL INFIRMARY', 'BFT SOUTHMEAD SOUTHMEAD HOSPITAL', 'WESTON GENERAL HOSPITAL')
         AND Arrival_Date BETWEEN '{ymd(report_start) - ddays(pre_window_days)}' AND '{report_end}'
     ")
     dat_ecds_full_raw <- sqlQuery(con, string_ecds_full)
     
     dat_ecds_full <- dat_ecds_full_raw %>%
+      mutate(Site_Name = recode(Site_Name, "BFT SOUTHMEAD SOUTHMEAD HOSPITAL" = "SOUTHMEAD HOSPITAL")) %>%
       filter(Organisation_Code_Commissioner == '15C') %>%
       mutate(NHS_Number = as.character(NHS_Number),
              Treatment_Function_Code = coalesce(as.character(Treatment_Function_Code), "Missing"),
@@ -233,10 +234,11 @@ get_impact_data <- function(report_start, report_end) {
     string_ecds <- glue::glue("
       SELECT nhs_number, Attendance_Unique_Identifier, Treatment_Function_Code, Arrival_Date, Arrival_Time, Initial_Assessment_Date, Initial_Assessment_Time, Seen_For_Treatment_Date, Seen_For_Treatment_Time, Decision_To_Admit_Date, Decision_To_Admit_Time, Organisation_Code_Commissioner, Departure_Date, Departure_Time, Site_Name, Acuity_Desc 
       FROM Analyst_SQL_Area.dbo.tbl_BNSSG_ECDS 
-      WHERE Site_Name IN ('BRISTOL ROYAL INFIRMARY', 'SOUTHMEAD HOSPITAL', 'WESTON GENERAL HOSPITAL') 
+      WHERE Site_Name IN ('BRISTOL ROYAL INFIRMARY', 'BFT SOUTHMEAD SOUTHMEAD HOSPITAL', 'WESTON GENERAL HOSPITAL') 
         AND Arrival_Date BETWEEN '{report_start}' AND '{report_end}'
     ")
     dat_ecds <- sqlQuery(con, string_ecds) %>%
+      mutate(Site_Name = recode(Site_Name, "BFT SOUTHMEAD SOUTHMEAD HOSPITAL" = "SOUTHMEAD HOSPITAL")) %>%
       mutate(nhs_number = as.character(nhs_number),
              arrival_dt = as.POSIXct(paste0(Arrival_Date, " ", substr(Arrival_Time, 1, 8)), format = "%Y-%m-%d %H:%M:%S"),
              dta_dt = as.POSIXct(ifelse(grepl("NA", paste0(Decision_To_Admit_Date, " ", substr(Decision_To_Admit_Time, 1, 8))), NA, paste0(Decision_To_Admit_Date, " ", substr(Decision_To_Admit_Time, 1, 8))), format = "%Y-%m-%d %H:%M:%S"),
@@ -315,11 +317,12 @@ get_impact_data <- function(report_start, report_end) {
     string_ecds_full <- glue::glue("
       SELECT nhs_number, Attendance_Unique_Identifier, Treatment_Function_Code, Arrival_Date, Arrival_Time, Initial_Assessment_Date, Initial_Assessment_Time, Seen_For_Treatment_Date, Seen_For_Treatment_Time, Decision_To_Admit_Date, Decision_To_Admit_Time, Organisation_Code_Commissioner, Departure_Date, Departure_Time, Site_Name, Acuity_Desc 
       FROM Analyst_SQL_Area.dbo.tbl_BNSSG_ECDS 
-      WHERE Site_Name IN ('BRISTOL ROYAL INFIRMARY', 'SOUTHMEAD HOSPITAL', 'WESTON GENERAL HOSPITAL') 
+      WHERE Site_Name IN ('BRISTOL ROYAL INFIRMARY', 'BFT SOUTHMEAD SOUTHMEAD HOSPITAL', 'WESTON GENERAL HOSPITAL') 
         AND Arrival_Date BETWEEN '{report_start}' AND '{report_end}'
     ")
     sqlQuery(con, string_ecds_full) %>%
       filter(is.na(Decision_To_Admit_Date)) %>%
+      mutate(Site_Name = recode(Site_Name, "BFT SOUTHMEAD SOUTHMEAD HOSPITAL" = "SOUTHMEAD HOSPITAL")) %>%
       mutate(arrival_dt = as.POSIXct(paste0(Arrival_Date, " ", substr(Arrival_Time, 1, 8)), format = "%Y-%m-%d %H:%M:%S"),
              treatment_dt = as.POSIXct(paste0(Seen_For_Treatment_Date, " ", substr(Seen_For_Treatment_Time, 1, 8)), format = "%Y-%m-%d %H:%M:%S"),
              dta_dt = as.POSIXct(ifelse(grepl("NA", paste0(Decision_To_Admit_Date, " ", substr(Decision_To_Admit_Time, 1, 8))), NA, paste0(Decision_To_Admit_Date, " ", substr(Decision_To_Admit_Time, 1, 8))), format = "%Y-%m-%d %H:%M:%S"),
