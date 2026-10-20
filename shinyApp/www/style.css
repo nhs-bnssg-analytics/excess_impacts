@@ -1,0 +1,229 @@
+/* ==========================================================================
+   1. GLOBAL PAGE & LAYOUT
+   Ensures the app fills the viewport and prevents unwanted scrolling.
+   ========================================================================== */
+html, body, .bslib-page-fill, .bslib-sidebar-layout {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  /* overflow: hidden !important; */
+}
+
+.bslib-page-fill {
+  background-color: #ffffff;
+}
+
+/* Main wrapper for app content */
+.main-content-container, #main_layout {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  overflow: hidden !important;
+  min-height: 0 !important;
+}
+
+.main-content-container {
+  padding: 5px 20px !important;
+}
+
+/* Flexbox utilities to ensure children fill available space */
+.flex-fill, .chart-container {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ==========================================================================
+   2. BSLIB & BOOTSTRAP OVERRIDES
+   Customizing bslib specific components like cards and sidebars.
+   ========================================================================== */
+.bslib-column-wrap, .bslib-layout-column {
+  overflow: hidden !important;
+}
+
+.layout-column-no-gap {
+  --bs-layout-columns-gap: 0 !important;
+  --bs-layout-rows-gap: 0 !important;
+}
+
+/* Sidebar behavior */
+.bslib-sidebar-layout > .bslib-sidebar-layout-panel {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: auto !important;
+}
+
+/* Hide label when sidebar is open */
+.bslib-sidebar-layout.sidebar-open .sidebar-toggle-label {
+  display: none;
+}
+
+/* ==========================================================================
+   3. CARD STYLING
+   ========================================================================== */
+.card {
+  border-radius: 0 !important;
+}
+
+.header-card {
+  margin-bottom: 5px !important;
+  min-height: 50px !important;
+}
+
+/* Combined no-border utility classes */
+.no-border, .no-border-no-pad, .no-border-no-pad-text-center {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.no-border-no-pad, .no-border-no-pad-text-center {
+  padding: 0 !important;
+  margin: 0 !important;
+  --bs-card-spacer-y: 0 !important;
+  --bs-card-spacer-x: 0 !important;
+}
+
+/* Vertically centered card content */
+.no-border-no-pad-text-center {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  height: 100%;
+}
+
+.no-border-no-pad-text-center .card-body {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  height: 100% !important;
+  padding: 10px !important;
+}
+
+/* ==========================================================================
+   4. TYPOGRAPHY & TEXT
+   ========================================================================== */
+.primary-text {
+  font-size: 25pt;
+  margin-bottom: 1rem;
+}
+
+.secondary-text {
+  font-size: 14px !important;
+  margin-bottom: 0.5rem !important;
+  line-height: 1.4 !important;
+}
+
+.app-standard-text {
+  font-size: 1vw !important;
+  line-height: 1.5 !important;
+  margin: 5px 0 !important;
+  font-weight: 400 !important;
+}
+
+.no-border-no-pad-text-center p {
+  margin: 0 !important;
+}
+
+/* ==========================================================================
+   5. FORM & INPUT STYLING
+   Compact inputs for high-density dashboards.
+   ========================================================================== */
+.form-group, .selectize-control {
+  margin-bottom: 0 !important;
+  margin-top: 0 !important;
+}
+
+.form-group {
+  padding-bottom: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Tooltip appearance */
+.tooltip-inner {
+  background-color: white !important;
+  color: black !important;
+  max-width: none !important;
+  padding: 10px !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+
+/* ==========================================================================
+   7. TABLES & RADIO SELECTION
+   ========================================================================== */
+/* Generic Custom Table */
+.custom-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 20px 0;
+  font-family: inherit;
+}
+
+.custom-table th {
+  background-color: #2c3e50;
+  color: white;
+  padding: 12px;
+  text-align: left;
+}
+
+.custom-table td {
+  padding: 10px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.custom-table tr:nth-child(even) { background-color: #f8f9fa; }
+.custom-table tr:hover { background-color: #e9ecef; transition: 0.2s; }
+
+/* Radio Button Overlay for Tables */
+.radio-table-wrapper {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.radio-buttons-column {
+  position: absolute;
+  top: 45px;
+  left: 5px;
+  z-index: 10;
+  width: 60px;
+}
+
+/* Hide default radio labels/text to show only the circle */
+.radio-buttons-column .radio span { display: none; }
+
+.content-table th, .content-table td {
+  padding: 12px 15px !important;
+  border-bottom: 1px solid #ddd;
+  height: 22px !important;
+}
+
+.content-row.active {
+  background-color: #e8f0fe;
+}
+
+/* ==========================================================================
+   8. DIVIDERS & SPACING FIXES
+   ========================================================================== */
+.column-divider {
+  border-right: 3px solid #dee2e6;
+  height: 100%;
+  padding-right: 1rem;
+}
+
+.vertical-line {
+  position: absolute;
+  left: 49.5%;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  border-left: 4px solid darkgray;
+  z-index: 1000;
+}
+
+.bslib-gap-spacing, .html-fill-container {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
